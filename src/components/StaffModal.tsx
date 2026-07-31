@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, UserPlus, Trash2, Shield, UserMinus, UserCheck } from 'lucide-react';
+import { X, UserPlus, Trash2, UserMinus, UserCheck } from 'lucide-react';
 import { ExperienceLevel, Staff } from '../types';
+import { formatGroupMinimal } from './PersonCard';
 
 interface StaffModalProps {
   staffList: Staff[];
@@ -21,16 +22,17 @@ export const StaffModal: React.FC<StaffModalProps> = ({
   onDeleteStaff,
   onToggleExitStaff
 }) => {
+  const todayStr = new Date().toISOString().split('T')[0];
+
   const [name, setName] = useState('');
   const [groupId, setGroupId] = useState(groups[0] || '20501组');
-  const [region, setRegion] = useState(regions[0] || '昆山');
-  const [experience, setExperience] = useState<ExperienceLevel>('regular');
-  const [entryDate, setEntryDate] = useState(new Date().toISOString().split('T')[0]);
+  const [region, setRegion] = useState(regions[0] || '待定');
+  
+  // 新增人员默认是新手 (novice)，日期是从新增的时候开始 (todayStr)
+  const [experience, setExperience] = useState<ExperienceLevel>('novice');
+  const [entryDate, setEntryDate] = useState(todayStr);
 
-  // 是否在弹窗内查看已离职人员
   const [showExitedOnly, setShowExitedOnly] = useState(false);
-
-  const cleanGroupLabel = (g: string) => g.replace(/组$/, '');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,11 +43,14 @@ export const StaffModal: React.FC<StaffModalProps> = ({
       groupId,
       region,
       experience,
-      entryDate,
+      entryDate: entryDate || todayStr,
       notes: ''
     });
 
     setName('');
+    // 恢复默认 novice
+    setExperience('novice');
+    setEntryDate(todayStr);
   };
 
   const displayList = staffList.filter(s => showExitedOnly ? s.isExited : !s.isExited);
@@ -69,7 +74,7 @@ export const StaffModal: React.FC<StaffModalProps> = ({
         <form onSubmit={handleSubmit} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
           <div className="text-xs font-bold text-slate-700 flex items-center">
             <UserPlus className="w-3.5 h-3.5 mr-1 text-indigo-600" />
-            新增业务代表成员
+            新增业务代表成员 (默认等级为新手，入职日为今天)
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
@@ -93,7 +98,7 @@ export const StaffModal: React.FC<StaffModalProps> = ({
                 className="w-full p-1.5 bg-white border border-slate-300 rounded font-semibold focus:outline-none"
               >
                 {groups.map((g) => (
-                  <option key={g} value={g}>{cleanGroupLabel(g)}</option>
+                  <option key={g} value={g}>{formatGroupMinimal(g)}组</option>
                 ))}
               </select>
             </div>
@@ -116,11 +121,11 @@ export const StaffModal: React.FC<StaffModalProps> = ({
               <select
                 value={experience}
                 onChange={(e) => setExperience(e.target.value as ExperienceLevel)}
-                className="w-full p-1.5 bg-white border border-slate-300 rounded focus:outline-none"
+                className="w-full p-1.5 bg-white border border-slate-300 rounded font-bold text-emerald-700 focus:outline-none"
               >
+                <option value="novice">新手 (默认入职&lt;90天)</option>
                 <option value="regular">一般人</option>
                 <option value="expert">高手</option>
-                <option value="novice">新手(&lt;90天)</option>
               </select>
             </div>
           </div>
@@ -129,11 +134,11 @@ export const StaffModal: React.FC<StaffModalProps> = ({
             type="submit"
             className="w-full py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition shadow-xs"
           >
-            确认添加人员
+            确认添加人员 (自动登记入职日为今天)
           </button>
         </form>
 
-        {/* 人员列表及离职过滤开关 */}
+        {/* 人员名册列表 */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-700">
@@ -162,11 +167,16 @@ export const StaffModal: React.FC<StaffModalProps> = ({
                 <div className="flex items-center space-x-2">
                   <span className="font-bold text-slate-800">{staff.name}</span>
                   <span className="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.2 rounded">
-                    {cleanGroupLabel(staff.groupId)} · {staff.region}
+                    {formatGroupMinimal(staff.groupId)}组 {staff.region !== '待定' ? `· ${staff.region}` : ''}
                   </span>
-                  <span className="text-[10px] text-slate-400">
+                  <span className={`text-[10px] font-semibold ${staff.experience === 'novice' ? 'text-emerald-600' : 'text-slate-500'}`}>
                     {staff.experience === 'expert' ? '高手' : staff.experience === 'novice' ? '新手' : '一般人'}
                   </span>
+                  {staff.entryDate && (
+                    <span className="text-[9px] text-slate-400 font-mono">
+                      {staff.entryDate}
+                    </span>
+                  )}
                   {staff.isExited && (
                     <span className="text-[9px] bg-rose-100 text-rose-700 font-bold px-1 rounded">
                       已离职
