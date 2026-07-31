@@ -1,0 +1,10 @@
+name = "roster-system"
+compatibility_date = "2026-07-31"
+
+[site]
+bucket = "./dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "roster-db"
+database_id = "your-d1-database-id"
