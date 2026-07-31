@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, UserCheck, Download, Settings, CheckCircle2, Edit3, Image as ImageIcon, FileSpreadsheet, Eye, Clock, Sun, Sunrise, Sunset, Moon } from 'lucide-react';
+import { Calendar, UserCheck, Download, Settings, CheckCircle2, Edit3, Image as ImageIcon, FileSpreadsheet, Eye, Clock } from 'lucide-react';
 import { AuthUser, ColorHighlightMode } from '../types';
 import { ViewType } from './ViewTabs';
 import { TimeSlotTab } from './BoardView';
@@ -18,7 +18,6 @@ interface HeaderProps {
   onExportImage: () => void;
   onOpenStaffModal: () => void;
   onOpenDirectionModal: () => void;
-  // 新增：视图与时段下拉控制
   activeView: ViewType;
   onViewChange: (view: ViewType) => void;
   activeSlot: TimeSlotTab;
@@ -63,7 +62,7 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="bg-white border border-slate-200/90 rounded-2xl p-2 md:p-2.5 shadow-2xs space-y-2">
       
-      {/* 顶栏第一行：标题与全局下拉控制项 (移动端自适应平齐) */}
+      {/* 顶栏第一行：标题与全局下拉控制项 */}
       <div className="flex flex-wrap items-center justify-between gap-1.5 border-b border-slate-100 pb-2">
         
         {/* 左侧：系统标题 */}
@@ -76,7 +75,7 @@ export const Header: React.FC<HeaderProps> = ({
           </h1>
         </div>
 
-        {/* 中间下拉控制组：日期 / 角色 / 视图 / 时段 (一排整齐对齐) */}
+        {/* 中间下拉控制组 */}
         <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0 justify-end md:justify-start">
           
           {/* 1. 日期选择下拉框 */}
@@ -107,7 +106,7 @@ export const Header: React.FC<HeaderProps> = ({
             </select>
           </div>
 
-          {/* 3. 视图选择下拉框 (取代原Tab) */}
+          {/* 3. 视图选择下拉框 (包含全量 6 大视图：含厅堂支行与自拓视角) */}
           <div className="relative flex items-center bg-indigo-50/70 border border-indigo-200 rounded-lg px-1.5 py-1 hover:border-indigo-300 transition">
             <Eye className="w-3.5 h-3.5 text-indigo-700 mr-1 flex-shrink-0" />
             <select
@@ -117,12 +116,14 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <option value="board">📋 整体看板视图</option>
               <option value="scene">🛍️ 合作方场景视图</option>
+              <option value="branch">🏛️ 厅堂支行视图</option>
               <option value="list">📄 线上名单视图</option>
+              <option value="self_explore">📍 自拓获客视图</option>
               <option value="vacation">🏖️ 30天休假视图</option>
             </select>
           </div>
 
-          {/* 4. 时段切面下拉框 (取代原横排) */}
+          {/* 4. 时段切面下拉框 */}
           <div className="relative flex items-center bg-amber-50/70 border border-amber-200 rounded-lg px-1.5 py-1 hover:border-amber-300 transition">
             <Clock className="w-3.5 h-3.5 text-amber-700 mr-1 flex-shrink-0" />
             <select
@@ -139,7 +140,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         </div>
 
-        {/* 右侧：动作控制组（管理、导出、确定排班 在最后平齐排列） */}
+        {/* 右侧：动作控制组 */}
         <div className="flex items-center space-x-1.5 flex-shrink-0 ml-auto pt-1 md:pt-0 border-t md:border-t-0 border-slate-100 w-full md:w-auto justify-end">
           
           {/* 管理功能下拉菜单 */}
@@ -208,7 +209,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* 确定完成 / 编辑排班 (放在最后且完美对齐) */}
+          {/* 确定完成 / 编辑排班 */}
           <button
             onClick={onToggleEditMode}
             className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center space-x-1 shadow-2xs transition ${
