@@ -4,7 +4,7 @@ import { AuthUser, ColorHighlightMode, DailySchedule, Direction, Staff } from '.
 import { PersonCard, formatGroupMinimal } from './PersonCard';
 import { canEditStaff, filterStaffByAuthUser } from '../models/PermissionModel';
 import { sortStaffWithCaptain } from '../models/StaffModel';
-import { Users, GripVertical, CheckCircle2, Pin, Trash2, ChevronDown, ChevronUp, Layers, FolderClosed, FolderOpen } from 'lucide-react';
+import { Users, GripVertical, CheckCircle2, Pin, Trash2, ChevronDown, ChevronUp, Layers, Package, BookOpen, FolderClosed } from 'lucide-react';
 
 interface BoardViewProps {
   isDefaultBoardView: boolean;
@@ -25,6 +25,7 @@ interface BoardViewProps {
 }
 
 export type TimeSlotTab = 'all' | 'morning' | 'afternoon' | 'evening';
+export type SceneFoldMode = 'expanded' | 'card_folded' | 'section_folded';
 
 export const BoardView: React.FC<BoardViewProps> = ({
   isDefaultBoardView,
@@ -43,6 +44,11 @@ export const BoardView: React.FC<BoardViewProps> = ({
   activeSlot
 }) => {
   const [isUnassignedScenesCollapsed, setIsUnassignedScenesCollapsed] = useState<boolean>(true);
+  
+  // 三阶段场景折叠模式: 'expanded' (全部展开) | 'card_folded' (各卡片折叠占一行) | 'section_folded' (场景整体收起为单行)
+  const [sceneFoldMode, setSceneFoldMode] = useState<SceneFoldMode>('expanded');
+  
+  // 个别单卡片手动覆盖折叠集合
   const [collapsedSceneIds, setCollapsedSceneIds] = useState<Set<string>>(new Set());
 
   const visibleStaffList = filterStaffByAuthUser(staffList, authUser);
@@ -119,6 +125,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
     };
   }, [directions, schedule, authUser, staffList, onReorderDirections, isEditMode]);
 
+  // 单卡片手动折叠/展开
   const toggleSingleSceneFold = (sceneId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setCollapsedSceneIds((prev) => {
@@ -132,11 +139,14 @@ export const BoardView: React.FC<BoardViewProps> = ({
     });
   };
 
-  const toggleFoldAllScenes = () => {
-    if (collapsedSceneIds.size === directions.length) {
-      setCollapsedSceneIds(new Set());
+  // 三阶段总控循环切换逻辑: expanded -> card_folded -> section_folded -> expanded
+  const cycleSceneFoldMode = () => {
+    if (sceneFoldMode === 'expanded') {
+      setSceneFoldMode('card_folded');
+    } else if (sceneFoldMode === 'card_folded') {
+      setSceneFoldMode('section_folded');
     } else {
-      setCollapsedSceneIds(new Set(directions.map((d) => d.id)));
+      setSceneFoldMode('expanded');
     }
   };
 
@@ -168,7 +178,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
 
   const isLeaderRole = authUser.role === 'leader' && !!authUser.groupId;
 
-  // 分类与底部分割：场景 -> (分割线) -> 自拓 -> 厅堂 -> 名单
+  // 分类与底部分割
   const allScenes = directions.filter((d) => d.category === 'scene');
   const exploreDirs = directions.filter((d) => d.category === 'self_explore');
   const branches = directions.filter((d) => d.category === 'branch');
@@ -215,7 +225,9 @@ export const BoardView: React.FC<BoardViewProps> = ({
 
   const renderDirectionCard = (dir: Direction) => {
     const isAggregateBranch = isDefaultBoardView && dir.category === 'branch';
-    const isCollapsed = collapsedSceneIds.has(dir.id);
+
+    // 如果全局设为 card_folded，则默认卡片折叠；否则取个别手动状态
+    const isCardFolded = sceneFoldMode === 'card_folded' || collapsedSceneIds.has(dir.id);
 
     let assignedStaff: Staff[] = [];
     if (isAggregateBranch) {
@@ -311,15 +323,15 @@ export const BoardView: React.FC<BoardViewProps> = ({
             <button
               onClick={(e) => toggleSingleSceneFold(dir.id, e)}
               className="p-0.5 bg-slate-200 text-slate-700 hover:bg-indigo-100 hover:text-indigo-700 rounded transition ml-1 border border-slate-300"
-              title={isCollapsed ? '展开此场景' : '折叠此场景(只留一行)'}
+              title={isCardFolded ? '展开此场景' : '折叠此场景(只留一行)'}
             >
-              {isCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+              {isCardFolded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
             </button>
           </div>
         </div>
 
-        {/* 人员容器 */}
-        {!isCollapsed && (
+        {/* 人员容器 (当卡片折叠时不渲染) */}
+        {!isCardFolded && (
           <div
             data-direction-id={dir.id}
             className="drag-container p-1.5 flex-1 min-h-[50px] flex flex-wrap content-start gap-1 bg-slate-50/50"
@@ -409,38 +421,59 @@ export const BoardView: React.FC<BoardViewProps> = ({
         {/* 右侧【场景区】与底部【分割公共类别区】 */}
         <div className="flex-1 space-y-3 w-full">
           
-          {/* 场景区总控栏 */}
+          {/* 场景区总控栏 (支持 3 阶段切换: 全部展开 -> 各卡片折叠占一行 -> 场景区整体合为一行) */}
           <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs text-xs font-bold text-slate-700">
             <div className="flex items-center space-x-1.5">
               <Layers className="w-4 h-4 text-blue-600" />
               <span>场景 ({populatedScenes.length} 个)</span>
             </div>
 
+            {/* 三阶段循环切换按钮 */}
             <button
-              onClick={toggleFoldAllScenes}
+              onClick={cycleSceneFoldMode}
               className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold flex items-center space-x-1 transition shadow-2xs"
             >
-              {collapsedSceneIds.size === directions.length ? (
+              {sceneFoldMode === 'expanded' ? (
                 <>
-                  <FolderOpen className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>📂 整体展开所有场景</span>
+                  <FolderClosed className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>📂 折叠卡片 (各占一行)</span>
+                </>
+              ) : sceneFoldMode === 'card_folded' ? (
+                <>
+                  <Package className="w-3.5 h-3.5 text-purple-600" />
+                  <span>📦 场景整体折叠 (合为一行)</span>
                 </>
               ) : (
                 <>
-                  <FolderClosed className="w-3.5 h-3.5 text-indigo-700" />
-                  <span>📂 整体折叠所有场景 (各占一行)</span>
+                  <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>📖 场景全部展开</span>
                 </>
               )}
             </button>
           </div>
 
-          {/* 1. 有人排班或置顶的场景卡片区 */}
-          <div className="scene-grid-container grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 w-full">
-            {populatedScenes.map(renderDirectionCard)}
-          </div>
+          {/* 1. 合作方场景区 (如果为 section_folded 整体折叠模式，收缩为极简单行) */}
+          {sceneFoldMode === 'section_folded' ? (
+            <div 
+              onClick={() => setSceneFoldMode('expanded')}
+              className="bg-indigo-50/80 border border-indigo-200 rounded-xl p-2.5 text-xs font-bold text-indigo-900 flex items-center justify-between cursor-pointer hover:bg-indigo-100/80 transition"
+            >
+              <div className="flex items-center space-x-2">
+                <span className="w-2.5 h-2.5 bg-blue-500 rounded-full"></span>
+                <span>全量场景区已整行折叠 (共 {populatedScenes.length} 个场景已收起，不占用空间)</span>
+              </div>
+              <span className="text-[11px] text-indigo-600 font-semibold bg-white px-2 py-0.5 rounded-md border border-indigo-200 shadow-2xs">
+                点击展开明细场景 ▾
+              </span>
+            </div>
+          ) : (
+            <div className="scene-grid-container grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 w-full">
+              {populatedScenes.map(renderDirectionCard)}
+            </div>
+          )}
 
           {/* 2. 无人排班场景折叠面板 */}
-          {!isEditMode && emptyScenes.length > 0 && (
+          {sceneFoldMode !== 'section_folded' && !isEditMode && emptyScenes.length > 0 && (
             <div className="bg-slate-100/90 rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
               <button
                 onClick={() => setIsUnassignedScenesCollapsed(!isUnassignedScenesCollapsed)}
