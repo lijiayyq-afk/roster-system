@@ -1,107 +1,120 @@
 import { Direction, Staff, DailySchedule } from '../types';
 import { INITIAL_DIRECTIONS, INITIAL_STAFF, INITIAL_SCHEDULES } from './mockData';
 
-const STAFF_KEY = 'roster_staff_list_v5_cloud';
-const DIRECTIONS_KEY = 'roster_directions_list_v5_cloud';
-const SCHEDULES_KEY = 'roster_schedules_v5_cloud';
+const STORAGE_KEYS = {
+  STAFF: 'roster_staff_v5_cloud',
+  DIRECTIONS: 'roster_directions_v5_cloud',
+  SCHEDULES: 'roster_schedules_v5_cloud'
+};
 
-// 免费且稳定的全网云端 JSON 共享同步端点 (支持多手机/多设备全网实时数据共享)
-const CLOUD_SYNC_ENDPOINT = 'https://api.jsonbin.io/v3/b/66aa8912e41b4d34e418290f'; 
+// 自动纠偏与清洗方向名称函数
+export const sanitizeDirections = (dirs: Direction[]): Direction[] => {
+  return dirs.map(d => {
+    let name = d.name;
+    if (d.category === 'self_explore' || d.id === 'dir-explore' || name.includes('自拓')) {
+      name = '自拓';
+    } else if (d.category === 'list' || d.id === 'dir-list' || name.includes('名单')) {
+      name = '名单';
+    } else if (d.category === 'branch' || d.id === 'dir-b1' || name.includes('厅堂')) {
+      name = '厅堂';
+    } else if (d.category === 'vacation' || d.id === 'dir-vacation' || name.includes('休假')) {
+      name = '休假';
+    } else if (d.category === 'pending_exit' || d.id === 'dir-exit' || name.includes('离职')) {
+      name = '待离职';
+    }
+    return { ...d, name };
+  });
+};
 
 export const loadStaff = (): Staff[] => {
-  const data = localStorage.getItem(STAFF_KEY);
-  if (!data) {
-    saveStaff(INITIAL_STAFF);
-    return INITIAL_STAFF;
-  }
   try {
-    return JSON.parse(data);
+    const raw = localStorage.getItem(STORAGE_KEYS.STAFF);
+    if (!raw) {
+      saveStaff(INITIAL_STAFF);
+      return INITIAL_STAFF;
+    }
+    return JSON.parse(raw);
   } catch {
     return INITIAL_STAFF;
   }
 };
 
-export const saveStaff = (staffList: Staff[]): void => {
-  localStorage.setItem(STAFF_KEY, JSON.stringify(staffList));
-  syncDataToCloud();
+export const saveStaff = (staffList: Staff[]) => {
+  localStorage.setItem(STORAGE_KEYS.STAFF, JSON.stringify(staffList));
+  syncCloudData('staffList', staffList);
 };
 
 export const loadDirections = (): Direction[] => {
-  const data = localStorage.getItem(DIRECTIONS_KEY);
-  if (!data) {
-    saveDirections(INITIAL_DIRECTIONS);
-    return INITIAL_DIRECTIONS;
-  }
   try {
-    return JSON.parse(data);
+    const raw = localStorage.getItem(STORAGE_KEYS.DIRECTIONS);
+    if (!raw) {
+      const sanitized = sanitizeDirections(INITIAL_DIRECTIONS);
+      saveDirections(sanitized);
+      return sanitized;
+    }
+    const parsed = JSON.parse(raw);
+    return sanitizeDirections(parsed);
   } catch {
-    return INITIAL_DIRECTIONS;
+    const sanitized = sanitizeDirections(INITIAL_DIRECTIONS);
+    return sanitized;
   }
 };
 
-export const saveDirections = (directions: Direction[]): void => {
-  localStorage.setItem(DIRECTIONS_KEY, JSON.stringify(directions));
-  syncDataToCloud();
+export const saveDirections = (directions: Direction[]) => {
+  const sanitized = sanitizeDirections(directions);
+  localStorage.setItem(STORAGE_KEYS.DIRECTIONS, JSON.stringify(sanitized));
+  syncCloudData('directions', sanitized);
 };
 
 export const loadSchedules = (): Record<string, DailySchedule> => {
-  const data = localStorage.getItem(SCHEDULES_KEY);
-  if (!data) {
-    saveSchedules(INITIAL_SCHEDULES);
-    return INITIAL_SCHEDULES;
-  }
   try {
-    return JSON.parse(data);
+    const raw = localStorage.getItem(STORAGE_KEYS.SCHEDULES);
+    if (!raw) {
+      saveSchedules(INITIAL_SCHEDULES);
+      return INITIAL_SCHEDULES;
+    }
+    return JSON.parse(raw);
   } catch {
     return INITIAL_SCHEDULES;
   }
 };
 
-export const saveSchedules = (schedules: Record<string, DailySchedule>): void => {
-  localStorage.setItem(SCHEDULES_KEY, JSON.stringify(schedules));
-  syncDataToCloud();
+export const saveSchedules = (schedules: Record<string, DailySchedule>) => {
+  localStorage.setItem(STORAGE_KEYS.SCHEDULES, JSON.stringify(schedules));
+  syncCloudData('schedules', schedules);
 };
 
-// 一键推送到云端网络端点
-let syncTimer: any = null;
-const syncDataToCloud = () => {
-  if (syncTimer) clearTimeout(syncTimer);
-  syncTimer = setTimeout(async () => {
-    try {
-      const payload = {
-        staffList: loadStaff(),
-        directions: loadDirections(),
-        schedules: loadSchedules(),
-        updatedAt: new Date().toISOString()
-      };
-      // 静默后台云端广播保存
-      await fetch('https://httpbin.org/post', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      }).catch(() => {});
-    } catch {
-      // 忽略掉线错误
-    }
-  }, 1000);
-};
+// 云端 API 同步封装
+const CLOUD_API_ENDPOINT = 'https://roster-system.pages.dev/api/kv-sync';
 
-// 尝试从云端同步最新数据
-export const fetchCloudLatestData = async (): Promise<{
+async function syncCloudData(key: string, data: any) {
+  try {
+    await fetch(CLOUD_API_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, data })
+    });
+  } catch {
+    // 静默兜底
+  }
+}
+
+export async function fetchCloudLatestData(): Promise<{
   staffList?: Staff[];
   directions?: Direction[];
   schedules?: Record<string, DailySchedule>;
-} | null> => {
+} | null> {
   try {
-    const res = await fetch(CLOUD_SYNC_ENDPOINT).catch(() => null);
-    if (res && res.ok) {
-      const json = await res.json();
-      if (json && json.record) {
-        return json.record;
+    const res = await fetch(`${CLOUD_API_ENDPOINT}?t=${Date.now()}`);
+    if (res.ok) {
+      const cloudData = await res.json();
+      if (cloudData.directions) {
+        cloudData.directions = sanitizeDirections(cloudData.directions);
       }
+      return cloudData;
     }
   } catch {
-    // 忽略云端连接失败，兜底使用本地
+    // 静态离线
   }
   return null;
-};
+}

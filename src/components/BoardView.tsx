@@ -53,7 +53,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
   const visibleStaffList = filterStaffByAuthUser(staffList, authUser);
 
   useEffect(() => {
-    // 初始化 Sortable 拖拽引擎 (支持 PC 鼠标与移动端 Touch 长按拖拽)
     const personContainers = document.querySelectorAll('.drag-container');
     const personSortables: Sortable[] = [];
 
@@ -222,6 +221,16 @@ export const BoardView: React.FC<BoardViewProps> = ({
 
   const isAllAssigned = unassignedList.length === 0;
 
+  // 渲染极简纯净的方向卡片标题名称
+  const getCleanDirectionTitle = (dir: Direction): string => {
+    if (dir.category === 'branch') return '厅堂';
+    if (dir.category === 'self_explore' || dir.id === 'dir-explore') return '自拓';
+    if (dir.category === 'list' || dir.id === 'dir-list') return '名单';
+    if (dir.category === 'vacation' || dir.id === 'dir-vacation') return '休假';
+    if (dir.category === 'pending_exit' || dir.id === 'dir-exit') return '待离职';
+    return dir.name;
+  };
+
   const renderDirectionCard = (dir: Direction) => {
     const isAggregateBranch = isDefaultBoardView && dir.category === 'branch';
     const isCardFolded = sceneFoldMode === 'card_folded' || collapsedSceneIds.has(dir.id);
@@ -236,6 +245,8 @@ export const BoardView: React.FC<BoardViewProps> = ({
     } else {
       assignedStaff = getStaffForDirectionAndSlot(dir.id);
     }
+
+    const cleanTitle = getCleanDirectionTitle(dir);
 
     return (
       <div
@@ -273,8 +284,8 @@ export const BoardView: React.FC<BoardViewProps> = ({
               }`}
             ></span>
 
-            <h3 className="font-bold text-xs text-slate-800 truncate max-w-[130px]" title={dir.name}>
-              {isAggregateBranch ? '厅堂' : dir.name}
+            <h3 className="font-bold text-xs text-slate-800 truncate max-w-[130px]" title={cleanTitle}>
+              {cleanTitle}
             </h3>
 
             {dir.isPinned && (
@@ -364,7 +375,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
 
       <div className="flex flex-col lg:flex-row gap-3 items-start">
         
-        {/* 左侧【待排班全员库】 (增加一键放回待排库按钮，支持拖拽触控) */}
+        {/* 左侧【待排班全员库】 */}
         <div className={`w-full lg:w-72 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex-shrink-0 transition-all ${
           isAllAssigned ? 'py-0' : ''
         }`}>
