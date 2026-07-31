@@ -58,6 +58,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
   const visibleStaffList = filterStaffByAuthUser(staffList, authUser);
 
   useEffect(() => {
+    // 1. 初始化所有人员容器的 Sortable 实例 (最优先)
     const personContainers = document.querySelectorAll('.drag-container');
     const personSortables: Sortable[] = [];
 
@@ -65,17 +66,13 @@ export const BoardView: React.FC<BoardViewProps> = ({
       const s = new Sortable(container as HTMLElement, {
         group: 'roster-board',
         animation: 150,
-        touchStartThreshold: 4,
-        delay: 80,
-        delayOnTouchOnly: true,
-        fallbackOnBody: true,
-        ghostClass: 'opacity-30',
+        ghostClass: 'opacity-40',
         onEnd: (evt) => {
           const { item, from, to, oldIndex } = evt;
           const staffId = item.getAttribute('data-id');
           const targetDirId = to.getAttribute('data-direction-id');
 
-          // 还原原生 DOM 节点，完全由 React 虚拟 DOM 驱动渲染，避免 DOM 混乱与二次影子
+          // DOM 原位还原，全权交由 React 虚拟 DOM 驱动渲染
           if (from && item && oldIndex !== undefined) {
             if (from.children[oldIndex]) {
               from.insertBefore(item, from.children[oldIndex]);
@@ -97,13 +94,16 @@ export const BoardView: React.FC<BoardViewProps> = ({
       personSortables.push(s);
     });
 
+    // 2. 场景卡片拖拽排序 (严格仅通过 .scene-header-handle 手柄拖拽，绝不劫持内部人员卡片)
     const sceneGrid = document.querySelector('.scene-grid-container');
     let sceneSortable: Sortable | null = null;
     if (sceneGrid && onReorderDirections && isEditMode) {
       sceneSortable = new Sortable(sceneGrid as HTMLElement, {
         handle: '.scene-header-handle',
-        animation: 200,
+        animation: 150,
         ghostClass: 'opacity-50',
+        filter: '.drag-container, .person-card-drag-item',
+        preventOnFilter: false,
         onEnd: () => {
           const cardNodes = Array.from(sceneGrid.children);
           const newOrderedIds = cardNodes.map(node => node.getAttribute('data-scene-id')).filter(Boolean) as string[];
@@ -129,7 +129,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
       personSortables.forEach((s) => s.destroy());
       if (sceneSortable) sceneSortable.destroy();
     };
-  }, [directions, schedule, authUser, staffList, onReorderDirections, isEditMode]);
+  }, [directions, schedule, authUser, staffList, onReorderDirections, isEditMode, sceneFoldMode, publicFoldMode]);
 
   const toggleSingleDirFold = (dirId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -341,7 +341,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
           </div>
         </div>
 
-        {/* 极简流线型人员拖拽容器：不再使用大块虚线框，有人时直展人员，无人时展现轻盈微弧线落脚点 */}
+        {/* 人员拖拽容器 */}
         {!isCardFolded && (
           <div
             data-direction-id={dir.id}
