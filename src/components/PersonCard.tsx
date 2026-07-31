@@ -11,6 +11,16 @@ interface PersonCardProps {
   onClickCard: (staff: Staff) => void;
 }
 
+// 极简组号格式化：20501组 -> 01, 20503组 -> 03
+export const formatGroupMinimal = (groupId: string): string => {
+  if (!groupId) return '';
+  const numOnly = groupId.replace(/[^0-9]/g, '');
+  if (numOnly.length >= 2) {
+    return numOnly.slice(-2);
+  }
+  return groupId.replace(/组$/, '');
+};
+
 export const PersonCard: React.FC<PersonCardProps> = ({
   staff,
   isCaptain = false,
@@ -20,8 +30,6 @@ export const PersonCard: React.FC<PersonCardProps> = ({
   onClickCard
 }) => {
   const hasCustomSlots = slotSchedule && (slotSchedule.morning || slotSchedule.afternoon || slotSchedule.evening);
-
-  const cleanGroupLabel = (g: string) => g.replace(/组$/, '');
 
   const getChipStyle = () => {
     if (colorMode === 'experience') {
@@ -63,9 +71,9 @@ export const PersonCard: React.FC<PersonCardProps> = ({
         {/* 姓名 */}
         <span className="truncate">{staff.name}</span>
 
-        {/* 组号（清理去掉“组”字） */}
+        {/* 组号极简（01, 03, 04, 05, 11, 71） */}
         <span className="text-[9px] text-slate-400 font-normal scale-90 origin-left">
-          {cleanGroupLabel(staff.groupId)}
+          {formatGroupMinimal(staff.groupId)}
         </span>
       </div>
 

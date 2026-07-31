@@ -13,7 +13,7 @@ export interface Staff {
   experience: ExperienceLevel;
   entryDate: string;
   notes?: string;
-  isExited?: boolean; // 新增：是否已离职
+  isExited?: boolean;
 }
 
 export interface Direction {
@@ -21,7 +21,8 @@ export interface Direction {
   name: string;
   category: DirectionCategory;
   captainId: string | null;
-  order?: number; // 新增：场景排序权重
+  order?: number;
+  isPinned?: boolean; // 新增：是否置顶
 }
 
 export interface PersonSlotSchedule {

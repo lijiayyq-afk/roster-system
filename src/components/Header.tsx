@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Calendar, Shield, Palette, Download, Building, Users, Settings, ChevronDown, Edit3, CheckCircle2 } from 'lucide-react';
 import { AuthUser, ColorHighlightMode } from '../types';
+import { formatGroupMinimal } from './PersonCard';
 
 interface HeaderProps {
   currentDate: string;
@@ -36,9 +37,6 @@ export const Header: React.FC<HeaderProps> = ({
   const [isManageMenuOpen, setIsManageMenuOpen] = useState(false);
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
 
-  // 清理组号中的“组”字，仅保留数字（如 20501组 -> 20501）
-  const cleanGroupLabel = (g: string) => g.replace(/组$/, '');
-
   const handlePrevDay = () => {
     const d = new Date(currentDate);
     d.setDate(d.getDate() - 1);
@@ -62,7 +60,6 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="text-xs">智能排班</span>
           </div>
 
-          {/* 紧凑日期选择器 */}
           <div className="flex items-center space-x-0.5 bg-slate-100 px-1 py-0.5 rounded-lg border border-slate-200">
             <button onClick={handlePrevDay} className="p-0.5 hover:bg-white rounded text-slate-600">
               <ChevronLeft className="w-3.5 h-3.5" />
@@ -107,7 +104,7 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </button>
 
-          {/* 身份切换 (经理 | 20501 | 20503... 无“组”字) */}
+          {/* 身份切换 (经理 | 01 | 03 | 04 | 05 | 11 | 71 极简展现) */}
           <div className="flex items-center space-x-1 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg">
             <Shield className="w-3 h-3 text-indigo-600 flex-shrink-0" />
             <select
@@ -125,13 +122,13 @@ export const Header: React.FC<HeaderProps> = ({
               <option value="manager">经理 (全盘)</option>
               {groups.map((g) => (
                 <option key={g} value={g}>
-                  {cleanGroupLabel(g)}
+                  {formatGroupMinimal(g)} 组
                 </option>
               ))}
             </select>
           </div>
 
-          {/* 管理与设置菜单 (内含场景管理、人员管理、显色切换) */}
+          {/* 管理与设置菜单 */}
           <div className="relative">
             <button
               onClick={() => {
@@ -172,7 +169,6 @@ export const Header: React.FC<HeaderProps> = ({
                   <span>人员与离职管理</span>
                 </button>
 
-                {/* 显色深层切换菜单 */}
                 <div className="pt-1 border-t border-slate-100 px-3 py-1">
                   <span className="text-[10px] text-slate-400 font-semibold block mb-1">显色模式</span>
                   <div className="flex items-center space-x-1">

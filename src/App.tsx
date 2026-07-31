@@ -80,6 +80,18 @@ export const App: React.FC = () => {
     saveDirections(updatedDirections);
   };
 
+  const handleTogglePinDirection = (directionId: string) => {
+    const updatedDirections = directions.map(d => {
+      if (d.id === directionId) {
+        return { ...d, isPinned: !d.isPinned };
+      }
+      return d;
+    });
+
+    setDirections(updatedDirections);
+    saveDirections(updatedDirections);
+  };
+
   const handleToggleExitStaff = (staffId: string, isExited: boolean) => {
     const updatedStaff = staffList.map(s => {
       if (s.id === staffId) {
@@ -110,19 +122,6 @@ export const App: React.FC = () => {
     updateCurrentSchedule({
       ...currentSchedule,
       slotAssignments: updatedSlots
-    });
-  };
-
-  const handleToggleExecutionStatus = (staffId: string, slot: TimeSlot, status: ExecutionStatus) => {
-    const key = `${staffId}_${slot}`;
-    const updatedRecords = {
-      ...(currentSchedule.executionRecords || {}),
-      [key]: status
-    };
-
-    updateCurrentSchedule({
-      ...currentSchedule,
-      executionRecords: updatedRecords
     });
   };
 
@@ -212,10 +211,7 @@ export const App: React.FC = () => {
       let elementId = 'board-view-export';
       let viewName = '整体看板视图';
 
-      if (activeView === 'group') {
-        elementId = 'group-view-export';
-        viewName = '小组视图';
-      } else if (activeView === 'vacation') {
+      if (activeView === 'vacation') {
         elementId = 'vacation-view-export';
         viewName = '最近30天休假视图';
       } else if (activeView === 'scene') {
@@ -256,19 +252,8 @@ export const App: React.FC = () => {
 
       <ViewTabs activeView={activeView} onViewChange={setActiveView} />
 
-      <main className="mt-2 pb-12">
-        {activeView === 'group' ? (
-          <GroupView
-            schedule={currentSchedule}
-            staffList={staffList}
-            directions={directions}
-            authUser={authUser}
-            colorMode={colorMode}
-            onMoveStaff={handleMoveStaff}
-            onClickStaffCard={setSelectedStaff}
-            onToggleExecutionStatus={handleToggleExecutionStatus}
-          />
-        ) : activeView === 'scene' ? (
+      <main className="mt-1.5 pb-12">
+        {activeView === 'scene' ? (
           <SceneView
             schedule={currentSchedule}
             staffList={staffList}
@@ -308,6 +293,8 @@ export const App: React.FC = () => {
             onUpdateSelfExploreArea={handleUpdateSelfExploreArea}
             onSwitchToSpecificView={(view) => setActiveView(view as ViewType)}
             onReorderDirections={handleReorderDirections}
+            onTogglePinDirection={handleTogglePinDirection}
+            onDeleteDirection={handleDeleteDirection}
           />
         )}
       </main>
