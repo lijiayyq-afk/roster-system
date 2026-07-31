@@ -28,7 +28,7 @@ export const App: React.FC = () => {
   const [activeView, setActiveView] = useState<ViewType>('board');
   const [activeSlot, setActiveSlot] = useState<TimeSlotTab>('all');
   
-  // 默认 isEditMode = true (编辑模式)
+  // 默认 isEditMode = true
   const [isEditMode, setIsEditMode] = useState<boolean>(true);
 
   const [staffList, setStaffList] = useState<Staff[]>([]);
@@ -264,17 +264,17 @@ export const App: React.FC = () => {
 
       if (activeView === 'vacation') {
         elementId = 'vacation-view-export';
-        viewName = '最近30天休假视图';
+        viewName = '30天休假视图';
       } else if (activeView === 'scene') {
         elementId = 'scene-view-export';
-        viewName = '合作方场景视图';
+        viewName = '场景视图';
       } else if (activeView === 'list') {
         elementId = 'list-view-export';
-        viewName = '线上名单收件视图';
+        viewName = '名单视图';
       } else if (activeView === 'branch') {
-        viewName = '厅堂支行视图';
+        viewName = '厅堂视图';
       } else if (activeView === 'self_explore') {
-        viewName = '自拓获客视图';
+        viewName = '自拓视角';
       }
 
       await exportElementToImage(elementId, currentDate, viewName);
