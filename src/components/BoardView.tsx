@@ -44,8 +44,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
   activeSlot
 }) => {
   const [isUnassignedScenesCollapsed, setIsUnassignedScenesCollapsed] = useState<boolean>(true);
-
-  // 记录已被折叠的场景 ID 集合
   const [collapsedSceneIds, setCollapsedSceneIds] = useState<Set<string>>(new Set());
 
   const visibleStaffList = filterStaffByAuthUser(staffList, authUser);
@@ -124,7 +122,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
     };
   }, [directions, schedule, authUser, staffList, onReorderDirections, isEditMode]);
 
-  // 单个场景折叠控制
   const toggleSingleSceneFold = (sceneId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setCollapsedSceneIds((prev) => {
@@ -138,7 +135,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
     });
   };
 
-  // 全量一键折叠 / 展开所有场景
   const toggleFoldAllScenes = () => {
     if (collapsedSceneIds.size === directions.length) {
       setCollapsedSceneIds(new Set());
@@ -389,7 +385,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
 
       <div className="flex flex-col lg:flex-row gap-3 items-start">
         
-        {/* 左侧【待排班全员库】 */}
+        {/* 左侧【待排班全员库】 (严格彻底清除搜索与筛选框，手机端精确定向展示 2 行微型卡片高度: h-16 max-h-16) */}
         <div className={`w-full lg:w-72 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex-shrink-0 transition-all ${
           isAllAssigned ? 'py-0' : ''
         }`}>
@@ -421,7 +417,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
           ) : (
             <div
               data-direction-id=""
-              className="drag-container p-1.5 h-20 max-h-20 lg:h-auto lg:max-h-[65vh] overflow-y-auto flex flex-wrap content-start gap-1 bg-slate-50/50"
+              className="drag-container p-1.5 h-16 max-h-16 lg:h-auto lg:max-h-[60vh] overflow-y-auto flex flex-wrap content-start gap-1 bg-slate-50/50"
             >
               {unassignedList.map((staff) => {
                 const canEdit = canEditStaff(authUser, staff);
