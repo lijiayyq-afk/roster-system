@@ -1,90 +1,90 @@
 import React from 'react';
-import { Lock, Clock } from 'lucide-react';
 import { ColorHighlightMode, PersonSlotSchedule, Staff } from '../types';
+import { Crown, AlertCircle } from 'lucide-react';
 
 interface PersonCardProps {
   staff: Staff;
   isCaptain?: boolean;
-  canEdit: boolean;
+  canEdit?: boolean;
   colorMode: ColorHighlightMode;
   slotSchedule?: PersonSlotSchedule;
-  onClickCard: (staff: Staff) => void;
+  onClickCard?: (staff: Staff) => void;
 }
 
-// 极简组号格式化：20501组 -> 01, 20503组 -> 03
 export const formatGroupMinimal = (groupId: string): string => {
-  if (!groupId) return '';
-  const numOnly = groupId.replace(/[^0-9]/g, '');
-  if (numOnly.length >= 2) {
-    return numOnly.slice(-2);
-  }
-  return groupId.replace(/组$/, '');
+  const match = groupId.match(/\d+/);
+  return match ? match[0].slice(-2) : groupId;
+};
+
+// 提取颜色的调色板
+const GROUP_PASTEL_COLORS: Record<string, string> = {
+  '01': 'bg-emerald-100 text-emerald-800 border-emerald-300',
+  '03': 'bg-sky-100 text-sky-800 border-sky-300',
+  '04': 'bg-indigo-100 text-indigo-800 border-indigo-300',
+  '05': 'bg-purple-100 text-purple-800 border-purple-300',
+  '11': 'bg-amber-100 text-amber-800 border-amber-300',
+  '71': 'bg-rose-100 text-rose-800 border-rose-300'
 };
 
 export const PersonCard: React.FC<PersonCardProps> = ({
   staff,
-  isCaptain = false,
-  canEdit,
+  isCaptain,
+  canEdit = true,
   colorMode,
   slotSchedule,
   onClickCard
 }) => {
-  const hasCustomSlots = slotSchedule && (slotSchedule.morning || slotSchedule.afternoon || slotSchedule.evening);
+  const groupTag = formatGroupMinimal(staff.groupId);
+  const isNovice = staff.experience === 'novice';
+  const isExpert = staff.experience === 'expert';
 
-  const getChipStyle = () => {
-    if (colorMode === 'experience') {
-      switch (staff.experience) {
-        case 'expert':
-          return 'bg-amber-100/90 border-amber-300 text-amber-900 hover:bg-amber-200';
-        case 'novice':
-          return 'bg-emerald-100/90 border-emerald-300 text-emerald-900 hover:bg-emerald-200';
-        default:
-          return 'bg-blue-100/90 border-blue-200 text-blue-900 hover:bg-blue-200';
-      }
-    } else if (colorMode === 'group') {
-      if (staff.groupId.includes('1')) return 'bg-indigo-100/90 border-indigo-300 text-indigo-900 hover:bg-indigo-200';
-      if (staff.groupId.includes('2')) return 'bg-teal-100/90 border-teal-300 text-teal-900 hover:bg-teal-200';
-      if (staff.groupId.includes('3')) return 'bg-purple-100/90 border-purple-300 text-purple-900 hover:bg-purple-200';
-      if (staff.groupId.includes('4')) return 'bg-orange-100/90 border-orange-300 text-orange-900 hover:bg-orange-200';
-      return 'bg-sky-100/90 border-sky-300 text-sky-900 hover:bg-sky-200';
+  const groupColorClass = GROUP_PASTEL_COLORS[groupTag] || 'bg-slate-100 text-slate-700 border-slate-300';
+
+  let colorClasses = 'bg-white text-slate-800 border-slate-200 hover:border-indigo-400';
+
+  if (colorMode === 'group') {
+    colorClasses = `${groupColorClass} hover:opacity-90`;
+  } else if (colorMode === 'experience') {
+    if (isNovice) {
+      colorClasses = 'bg-emerald-50 text-emerald-900 border-emerald-300 font-bold';
+    } else if (isExpert) {
+      colorClasses = 'bg-purple-50 text-purple-900 border-purple-300 font-bold';
     }
+  }
 
-    return 'bg-white border-slate-300 hover:border-indigo-500 text-slate-800 shadow-2xs';
-  };
+  const hasSlotDiff = slotSchedule && (slotSchedule.morning || slotSchedule.afternoon || slotSchedule.evening);
 
   return (
     <div
-      onClick={() => onClickCard(staff)}
       data-id={staff.id}
-      className={`inline-flex items-center justify-between px-2 py-0.5 rounded-md border text-xs font-semibold transition-all active:scale-95 cursor-pointer max-w-full ${
-        !canEdit ? 'opacity-65 bg-slate-100 border-slate-200 cursor-not-allowed' : getChipStyle()
-      } ${isCaptain ? 'ring-2 ring-amber-400 border-amber-400 font-bold bg-amber-50' : ''}`}
+      onClick={() => onClickCard && onClickCard(staff)}
+      style={{ touchAction: 'pan-y' }}
+      className={`group relative flex items-center h-7 px-2 py-0.5 rounded-lg border text-xs font-semibold shadow-3xs cursor-grab active:cursor-grabbing transition-all select-none ${colorClasses} ${
+        !canEdit ? 'opacity-60 cursor-not-allowed' : ''
+      }`}
     >
-      <div className="flex items-center space-x-1 truncate">
-        {/* 队长金黄星标 👑 */}
-        {isCaptain && (
-          <span className="text-amber-600 flex-shrink-0 text-xs" title="队长">
-            👑
-          </span>
-        )}
+      {/* 队长标识 */}
+      {isCaptain && (
+        <Crown className="w-3 h-3 text-amber-500 mr-1 flex-shrink-0 fill-amber-400" />
+      )}
 
-        {/* 姓名 */}
-        <span className="truncate">{staff.name}</span>
+      {/* 姓名 */}
+      <span className="truncate max-w-[70px]">{staff.name}</span>
 
-        {/* 组号极简（01, 03, 04, 05, 11, 71） */}
-        <span className="text-[9px] text-slate-400 font-normal scale-90 origin-left">
-          {formatGroupMinimal(staff.groupId)}
-        </span>
-      </div>
+      {/* 极简双字组号标记 */}
+      <span className="ml-1 text-[9px] px-1 py-0.1 bg-black/10 text-slate-700 rounded font-mono font-bold flex-shrink-0">
+        {groupTag}
+      </span>
 
-      <div className="flex items-center space-x-0.5 ml-1 flex-shrink-0">
-        {!canEdit && <Lock className="w-2.5 h-2.5 text-slate-400" />}
-        {hasCustomSlots && (
-          <span title="已设精细时段" className="inline-flex items-center">
-            <Clock className="w-2.5 h-2.5 text-indigo-600" />
-          </span>
-        )}
-      </div>
+      {/* 新手绿点/高手星标 */}
+      {isNovice && colorMode !== 'experience' && (
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 ml-1 flex-shrink-0" title="新手(<90天)"></span>
+      )}
+
+      {/* 进阶时段微型差异提示点 */}
+      {hasSlotDiff && (
+        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 ml-0.5 animate-pulse flex-shrink-0" title="包含时段排班"></span>
+      )}
     </div>
   );
 };

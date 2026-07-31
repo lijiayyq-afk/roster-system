@@ -27,8 +27,6 @@ export const App: React.FC = () => {
   const [colorMode, setColorMode] = useState<ColorHighlightMode>('none');
   const [activeView, setActiveView] = useState<ViewType>('board');
   const [activeSlot, setActiveSlot] = useState<TimeSlotTab>('all');
-  
-  // 默认 isEditMode = true
   const [isEditMode, setIsEditMode] = useState<boolean>(true);
 
   const [staffList, setStaffList] = useState<Staff[]>([]);
@@ -83,6 +81,17 @@ export const App: React.FC = () => {
       ...currentSchedule,
       assignments: newAssignments
     });
+  };
+
+  // 新增：一键清空/重置今日所有人员排班归放回待排库
+  const handleResetAllSchedule = () => {
+    if (confirm('确定要重置今日所有人员的排班安排，将全员放回待排班库吗？')) {
+      updateCurrentSchedule({
+        ...currentSchedule,
+        assignments: {},
+        slotAssignments: {}
+      });
+    }
   };
 
   const handleSetCaptain = (directionId: string, captainStaffId: string | null) => {
@@ -343,6 +352,7 @@ export const App: React.FC = () => {
             isEditMode={isEditMode}
             onMoveStaff={handleMoveStaff}
             onClickStaffCard={setSelectedStaff}
+            onResetAllSchedule={handleResetAllSchedule}
             onUpdateSelfExploreArea={handleUpdateSelfExploreArea}
             onSwitchToSpecificView={(view) => setActiveView(view as ViewType)}
             onReorderDirections={handleReorderDirections}
