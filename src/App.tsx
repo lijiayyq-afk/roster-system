@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AuthUser, ColorHighlightMode, DailySchedule, Direction, DirectionCategory, ExecutionStatus, PersonSlotSchedule, Staff, TimeSlot } from './types';
-import { loadDirections, loadSchedules, loadStaff, saveDirections, saveSchedules, saveStaff } from './utils/storage';
+import { fetchCloudLatestData, loadDirections, loadSchedules, loadStaff, saveDirections, saveSchedules, saveStaff } from './utils/storage';
 import { getOrInheritSchedule } from './models/ScheduleModel';
 import { Header } from './components/Header';
 import { ViewTabs, ViewType } from './components/ViewTabs';
@@ -26,8 +26,6 @@ export const App: React.FC = () => {
 
   const [colorMode, setColorMode] = useState<ColorHighlightMode>('none');
   const [activeView, setActiveView] = useState<ViewType>('board');
-  
-  // 默认 isEditMode = false (仅预览模式)
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
 
   const [staffList, setStaffList] = useState<Staff[]>([]);
@@ -39,9 +37,28 @@ export const App: React.FC = () => {
   const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
 
   useEffect(() => {
+    // 优先加载本地快照
     setStaffList(loadStaff());
     setDirections(loadDirections());
     setSchedules(loadSchedules());
+
+    // 尝试拉取全网云端同步数据
+    fetchCloudLatestData().then(cloudData => {
+      if (cloudData) {
+        if (cloudData.staffList && cloudData.staffList.length > 0) {
+          setStaffList(cloudData.staffList);
+          saveStaff(cloudData.staffList);
+        }
+        if (cloudData.directions && cloudData.directions.length > 0) {
+          setDirections(cloudData.directions);
+          saveDirections(cloudData.directions);
+        }
+        if (cloudData.schedules) {
+          setSchedules(cloudData.schedules);
+          saveSchedules(cloudData.schedules);
+        }
+      }
+    });
   }, []);
 
   const currentSchedule = getOrInheritSchedule(currentDate, schedules);
@@ -107,7 +124,6 @@ export const App: React.FC = () => {
     }
   };
 
-  // 修改在职/离职人员信息
   const handleUpdateStaff = (updatedStaffObj: Staff) => {
     const updated = staffList.map(s => {
       if (s.id === updatedStaffObj.id) {
