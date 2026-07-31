@@ -5,6 +5,7 @@ import { getOrInheritSchedule } from './models/ScheduleModel';
 import { Header } from './components/Header';
 import { ViewTabs, ViewType } from './components/ViewTabs';
 import { BoardView } from './components/BoardView';
+import { SceneView } from './components/SceneView';
 import { GroupView } from './components/GroupView';
 import { VacationView } from './components/VacationView';
 import { BottomSheet } from './components/BottomSheet';
@@ -180,6 +181,7 @@ export const App: React.FC = () => {
         elementId = 'vacation-view-export';
         title = '休假视图30天';
       } else if (activeView === 'scene') {
+        elementId = 'scene-view-export';
         title = '场景视图';
       } else if (activeView === 'branch') {
         title = '厅堂支行视图';
@@ -215,6 +217,20 @@ export const App: React.FC = () => {
             schedule={currentSchedule}
             staffList={staffList}
             directions={directions}
+            authUser={authUser}
+            showExperienceColor={showExperienceColor}
+            onMoveStaff={handleMoveStaff}
+            onClickStaffCard={setSelectedStaff}
+          />
+        ) : activeView === 'scene' ? (
+          <SceneView
+            schedule={currentSchedule}
+            staffList={staffList}
+            directions={directions}
+            authUser={authUser}
+            showExperienceColor={showExperienceColor}
+            onMoveStaff={handleMoveStaff}
+            onClickStaffCard={setSelectedStaff}
           />
         ) : activeView === 'vacation' ? (
           <VacationView
