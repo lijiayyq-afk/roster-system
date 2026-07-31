@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Sortable from 'sortablejs';
 import { AuthUser, ColorHighlightMode, DailySchedule, Direction, Staff } from '../types';
 import { PersonCard } from './PersonCard';
-import { canEditStaff } from '../models/PermissionModel';
+import { canEditStaff, filterStaffByAuthUser } from '../models/PermissionModel';
 import { sortStaffWithCaptain } from '../models/StaffModel';
 import { Compass, MapPin, Users, Search, Filter, GripVertical, CheckCircle2 } from 'lucide-react';
 
@@ -42,17 +42,20 @@ export const BoardView: React.FC<BoardViewProps> = ({
 
   const cleanGroupLabel = (g: string) => g.replace(/组$/, '');
 
+  // 1. 核心权限过滤：如果为组长，可见人员纯净化为仅本组人员！
+  const visibleStaffList = filterStaffByAuthUser(staffList, authUser);
+
   useEffect(() => {
     if (isLeaderRole && authUser.groupId) {
       setFilterGroup(authUser.groupId);
+    } else {
+      setFilterGroup('all');
     }
   }, [authUser]);
 
   useEffect(() => {
-    // 只有在 isEditMode 编辑模式下才开启拖拽功能！
     if (!isEditMode) return;
 
-    // 1. 绑定人员拖拽
     const personContainers = document.querySelectorAll('.drag-container');
     const personSortables: Sortable[] = [];
 
@@ -80,7 +83,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
             if (staff && canEditStaff(authUser, staff)) {
               onMoveStaff(staffId, targetDirId);
             } else if (staff && !canEditStaff(authUser, staff)) {
-              alert(`您作为 [${authUser.groupId}组长]，无权修改 [${staff.groupId}] 成员 [${staff.name}] 的排班安排`);
+              alert(`无权修改非本组成员的排班安排`);
             }
           }
         },
@@ -88,7 +91,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
       personSortables.push(s);
     });
 
-    // 2. 绑定场景卡片拖拽排序
     const sceneGrid = document.querySelector('.scene-grid-container');
     let sceneSortable: Sortable | null = null;
     if (sceneGrid && onReorderDirections) {
@@ -123,10 +125,9 @@ export const BoardView: React.FC<BoardViewProps> = ({
     };
   }, [directions, schedule, authUser, staffList, onReorderDirections, isEditMode]);
 
-  // 所有未分配人员 (排除已离职)
-  const unassignedRawList = staffList.filter((s) => !schedule.assignments[s.id] && !s.isExited);
+  // 所有未分配人员 (完全基于 visibleStaffList)
+  const unassignedRawList = visibleStaffList.filter((s) => !schedule.assignments[s.id] && !s.isExited);
 
-  // 针对全员库实施组长专属过滤与搜姓名过滤
   const filteredUnassignedList = unassignedRawList.filter((s) => {
     const matchName = s.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchGroup = filterGroup === 'all' || s.groupId === filterGroup;
@@ -140,13 +141,13 @@ export const BoardView: React.FC<BoardViewProps> = ({
       .filter(([_, dId]) => dId === dirId)
       .map(([sId, _]) => sId);
 
-    const dirStaff = staffList.filter((s) => assignedIds.includes(s.id) && !s.isExited);
+    // 人员只取 visibleStaffList，实现卡片内部的人员纯净过滤
+    const dirStaff = visibleStaffList.filter((s) => assignedIds.includes(s.id) && !s.isExited);
     const dir = directions.find((d) => d.id === dirId);
 
     return sortStaffWithCaptain(dirStaff, dir?.captainId);
   };
 
-  // 场景排序：合作方场景按“已安排人数从多到少”排序，厅堂/名单/自拓/休假/待离职固定在最后
   let displayDirections = [...directions];
 
   if (isDefaultBoardView) {
@@ -157,7 +158,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
     const vacationDirs = directions.filter((d) => d.category === 'vacation');
     const exitDirs = directions.filter((d) => d.category === 'pending_exit');
 
-    // 如果不在人工自定义拖拽阶段，按人数降序排列场景
     const sortedScenes = [...scenes].sort((a, b) => {
       const countA = getStaffForDirection(a.id).length;
       const countB = getStaffForDirection(b.id).length;
@@ -179,7 +179,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
   return (
     <div id="board-view-export" className="flex flex-col lg:flex-row gap-3 items-start">
       
-      {/* 左侧【待排班全员人员库】面板 (全排完缩为一行，高度自适应) */}
+      {/* 左侧【待排班全员人员库】面板 (组长身份时只展示本组人) */}
       <div className={`w-full lg:w-72 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex-shrink-0 transition-all ${
         isAllAssigned ? 'py-0' : ''
       }`}>
@@ -187,7 +187,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
           <div className="flex items-center space-x-1.5 font-bold text-xs">
             <Users className="w-3.5 h-3.5 text-indigo-400" />
             <span>
-              {isLeaderRole ? `${cleanGroupLabel(authUser.groupId || '')} 待排班库` : '待排班全员库'}
+              {isLeaderRole ? `${cleanGroupLabel(authUser.groupId || '')} 组待排库` : '待排班全员库'}
             </span>
           </div>
 
@@ -195,20 +195,20 @@ export const BoardView: React.FC<BoardViewProps> = ({
             <span className={`text-[10px] font-mono font-bold px-2 py-0.2 rounded-full ${
               isAllAssigned ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-200'
             }`}>
-              {isAllAssigned ? '已全部完成排班' : `${filteredUnassignedList.length} 人待定`}
+              {isAllAssigned ? '本组已完成排班' : `${filteredUnassignedList.length} 人待定`}
             </span>
           </div>
         </div>
 
-        {/* 当全员完成排班时缩写为精简一行，不占用屏幕大片空间 */}
+        {/* 当组内/全员完成排班时缩写为精简一行 */}
         {isAllAssigned ? (
           <div className="px-3 py-1.5 bg-emerald-50 text-emerald-800 text-xs font-semibold flex items-center justify-between">
             <div className="flex items-center space-x-1">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-              <span>全员已完成排班规划</span>
+              <span>{isLeaderRole ? `${cleanGroupLabel(authUser.groupId || '')} 组员已全员到位` : '全员已完成排班规划'}</span>
             </div>
             <span className="text-[10px] text-emerald-600 font-mono">
-              总计 {staffList.filter(s => !s.isExited).length} 人已就位
+              共 {visibleStaffList.filter(s => !s.isExited).length} 人已就位
             </span>
           </div>
         ) : (
@@ -245,7 +245,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
               )}
             </div>
 
-            {/* 待排班人员容器 (高度自适应) */}
+            {/* 待排班人员容器 */}
             <div
               data-direction-id=""
               className="drag-container p-2 max-h-52 lg:max-h-[68vh] overflow-y-auto flex flex-wrap content-start gap-1.5 bg-slate-50/50 min-h-[60px]"
@@ -279,7 +279,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
             const assignedIds = Object.entries(schedule.assignments)
               .filter(([_, dId]) => branchIds.includes(dId))
               .map(([sId, _]) => sId);
-            assignedStaff = staffList.filter((s) => assignedIds.includes(s.id) && !s.isExited);
+            assignedStaff = visibleStaffList.filter((s) => assignedIds.includes(s.id) && !s.isExited);
           } else {
             assignedStaff = getStaffForDirection(dir.id);
           }
@@ -293,7 +293,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
               {/* 场景 Header */}
               <div className="px-2.5 py-1.5 bg-slate-100/90 border-b border-slate-200 flex items-center justify-between">
                 <div className="flex items-center space-x-1.5">
-                  {/* 编辑模式下才显示拖拽手柄 */}
                   {isEditMode && (
                     <span className="scene-header-handle cursor-grab active:cursor-grabbing p-0.5 text-slate-400 hover:text-slate-600" title="拖拽调整场景位置">
                       <GripVertical className="w-3.5 h-3.5" />
@@ -370,7 +369,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
                     自拓搭档 & 规划区域
                   </div>
                   {schedule.selfExplorePairs.map((pair) => {
-                    const pairStaff = staffList.filter((s) => pair.staffIds.includes(s.id));
+                    const pairStaff = visibleStaffList.filter((s) => pair.staffIds.includes(s.id));
                     return (
                       <div key={pair.id} className="p-1 bg-white rounded border border-purple-200 text-[11px] mb-1">
                         <div className="font-semibold text-purple-800 mb-0.5">

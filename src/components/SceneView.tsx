@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { AuthUser, ColorHighlightMode, DailySchedule, Direction, Staff } from '../types';
 import { PersonCard } from './PersonCard';
-import { canEditStaff } from '../models/PermissionModel';
+import { canEditStaff, filterStaffByAuthUser } from '../models/PermissionModel';
 import { sortStaffWithCaptain } from '../models/StaffModel';
-import { Building, Award, Users, Filter } from 'lucide-react';
+import { Building, Users } from 'lucide-react';
 
 interface SceneViewProps {
   schedule: DailySchedule;
@@ -21,11 +21,12 @@ export const SceneView: React.FC<SceneViewProps> = ({
   directions,
   authUser,
   colorMode,
-  onMoveStaff,
   onClickStaffCard
 }) => {
-  // 默认 'all' 表示 全场景 (总视图)
   const [selectedSceneId, setSelectedSceneId] = useState<string>('all');
+
+  // 纯净隔离过滤：为组长时仅保留本组人员
+  const visibleStaffList = filterStaffByAuthUser(staffList, authUser);
 
   const sceneDirections = directions.filter((d) => d.category === 'scene');
 
@@ -34,7 +35,7 @@ export const SceneView: React.FC<SceneViewProps> = ({
       .filter(([_, dId]) => dId === sceneId)
       .map(([sId, _]) => sId);
 
-    const dirStaff = staffList.filter((s) => assignedIds.includes(s.id));
+    const dirStaff = visibleStaffList.filter((s) => assignedIds.includes(s.id) && !s.isExited);
     const dir = sceneDirections.find((d) => d.id === sceneId);
 
     return sortStaffWithCaptain(dirStaff, dir?.captainId);
@@ -46,7 +47,6 @@ export const SceneView: React.FC<SceneViewProps> = ({
 
   return (
     <div id="scene-view-export" className="space-y-3">
-      {/* 场景视角顶部控制栏：全场景总视图与场景切换合并为单一下拉框 */}
       <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
         <div className="flex items-center space-x-2">
           <div className="p-1.5 bg-blue-100 rounded-lg text-blue-700">
@@ -58,9 +58,7 @@ export const SceneView: React.FC<SceneViewProps> = ({
           </div>
         </div>
 
-        {/* 合并为单一下拉选择框 (全场景总视图与个别场景切换融为一体) */}
         <div className="flex items-center space-x-1.5">
-          <Filter className="w-3.5 h-3.5 text-blue-600 hidden sm:block" />
           <select
             value={selectedSceneId}
             onChange={(e) => setSelectedSceneId(e.target.value)}
@@ -80,11 +78,10 @@ export const SceneView: React.FC<SceneViewProps> = ({
         </div>
       </div>
 
-      {/* 场景内容展示区 */}
       <div className={`grid gap-3 ${selectedSceneId === 'all' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
         {displayScenes.map((scene) => {
           const assignedStaff = getStaffForScene(scene.id);
-          const captain = staffList.find((s) => s.id === scene.captainId);
+          const captain = visibleStaffList.find((s) => s.id === scene.captainId);
 
           const groupStats: Record<string, number> = {};
           assignedStaff.forEach(s => {
@@ -96,40 +93,26 @@ export const SceneView: React.FC<SceneViewProps> = ({
               key={scene.id}
               className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col"
             >
-              <div className="px-3.5 py-2.5 bg-gradient-to-r from-blue-900 to-indigo-900 text-white flex items-center justify-between">
+              <div className="px-3.5 py-2 bg-gradient-to-r from-blue-900 to-indigo-900 text-white flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Building className="w-4 h-4 text-blue-300" />
-                  <h3 className="font-bold text-sm truncate max-w-[200px]">
+                  <h3 className="font-bold text-xs truncate max-w-[200px]">
                     {scene.name}
                   </h3>
                 </div>
 
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs bg-blue-700 text-blue-100 font-bold px-2 py-0.5 rounded-full">
-                    全场景共 {assignedStaff.length} 人
-                  </span>
-                </div>
+                <span className="text-xs bg-blue-700 text-blue-100 font-bold px-2 py-0.5 rounded-full">
+                  共 {assignedStaff.length} 人
+                </span>
               </div>
 
-              <div className="px-3.5 py-2 bg-blue-50/80 border-b border-blue-100 flex flex-wrap items-center justify-between text-xs gap-1">
-                <div className="flex items-center text-blue-900 font-semibold">
-                  <Award className="w-3.5 h-3.5 text-amber-500 mr-1" />
-                  <span>队长: {captain ? `${captain.name} (${captain.groupId})` : '暂未指定'}</span>
+              {captain && (
+                <div className="px-3 py-1 bg-amber-50 text-[11px] text-amber-900 border-b border-amber-100">
+                  👑 队长: {captain.name}
                 </div>
+              )}
 
-                <div className="flex items-center space-x-1.5 text-[11px] text-blue-700">
-                  <Users className="w-3 h-3 text-blue-500" />
-                  <span>组别分布: </span>
-                  {Object.entries(groupStats).map(([g, cnt]) => (
-                    <span key={g} className="bg-white px-1.5 py-0.2 rounded border border-blue-200 font-mono">
-                      {g}:{cnt}人
-                    </span>
-                  ))}
-                  {Object.keys(groupStats).length === 0 && <span>无</span>}
-                </div>
-              </div>
-
-              <div className="p-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 bg-slate-50/50">
+              <div className="p-2 flex-1 min-h-[60px] flex flex-wrap content-start gap-1 bg-slate-50/50">
                 {assignedStaff.map((staff) => {
                   const canEdit = canEditStaff(authUser, staff);
                   return (
@@ -146,8 +129,8 @@ export const SceneView: React.FC<SceneViewProps> = ({
                 })}
 
                 {assignedStaff.length === 0 && (
-                  <div className="col-span-full h-20 flex items-center justify-center border-2 border-dashed border-slate-200 rounded-lg text-slate-400 text-xs">
-                    该场景暂未安排人员
+                  <div className="w-full h-10 flex items-center justify-center border border-dashed border-slate-200 rounded text-slate-400 text-xs">
+                    该场景暂无安排人员
                   </div>
                 )}
               </div>
