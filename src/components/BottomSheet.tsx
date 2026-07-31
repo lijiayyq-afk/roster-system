@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Award, MapPin, Clock, FileText, Check, AlertCircle, RotateCcw } from 'lucide-react';
+import { X, Award, MapPin, Clock, FileText, Check, AlertCircle, RotateCcw, UserMinus, UserCheck } from 'lucide-react';
 import { Direction, PersonSlotSchedule, Staff } from '../types';
 import { checkExperienceUpgrade } from '../models/StaffModel';
 
@@ -13,6 +13,7 @@ interface BottomSheetProps {
   onSetCaptain: (directionId: string, staffId: string | null) => void;
   onSaveSlotSchedule: (staffId: string, slots: PersonSlotSchedule) => void;
   onSaveNotes: (staffId: string, notes: string) => void;
+  onToggleExitStaff?: (staffId: string, isExited: boolean) => void;
 }
 
 export const BottomSheet: React.FC<BottomSheetProps> = ({
@@ -24,7 +25,8 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   onAssignDirection,
   onSetCaptain,
   onSaveSlotSchedule,
-  onSaveNotes
+  onSaveNotes,
+  onToggleExitStaff
 }) => {
   if (!staff) return null;
 
@@ -63,6 +65,11 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
               <span className="text-xs px-2 py-0.5 bg-slate-100 text-slate-600 rounded font-medium">
                 {staff.groupId} · {staff.region}
               </span>
+              {staff.isExited && (
+                <span className="text-[10px] bg-rose-100 text-rose-700 font-bold px-1.5 py-0.5 rounded">
+                  已离职
+                </span>
+              )}
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
               经验: {staff.experience === 'expert' ? '高手' : staff.experience === 'novice' ? '新手' : '一般人'}
@@ -74,16 +81,16 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
           </button>
         </div>
 
-        {isMaturedNovice && (
+        {isMaturedNovice && !staff.isExited && (
           <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center space-x-2 text-xs text-emerald-800">
             <AlertCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
             <span>已入职满 90 天（新手期），建议可升级为“一般人”或“高手”！</span>
           </div>
         )}
 
-        {/* 1. 设置队长 & 退回人员库 */}
-        <div className="flex gap-2">
-          {currentDir && (currentDir.category === 'scene' || currentDir.category === 'branch') && (
+        {/* 1. 设置队长 & 退回人员库 & 离职管理 */}
+        <div className="flex flex-wrap gap-2">
+          {currentDir && (currentDir.category === 'scene' || currentDir.category === 'branch') && !staff.isExited && (
             <button
               onClick={() => {
                 onSetCaptain(currentDir.id, isCaptainOfCurrent ? null : staff.id);
@@ -99,7 +106,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             </button>
           )}
 
-          {currentDirectionId && (
+          {currentDirectionId && !staff.isExited && (
             <button
               onClick={() => onAssignDirection(staff.id, '')}
               className="py-1.5 px-3 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg text-xs font-semibold flex items-center space-x-1 border border-slate-300"
@@ -109,93 +116,119 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
               <span>退回全员库</span>
             </button>
           )}
+
+          {/* 离职 / 重新在职切换按钮 */}
+          {onToggleExitStaff && (
+            <button
+              onClick={() => {
+                if (staff.isExited) {
+                  onToggleExitStaff(staff.id, false);
+                } else if (confirm(`确定将成员 [${staff.name}] 标记为已离职吗？离职后默认不在常规排班全员库中展示。`)) {
+                  onToggleExitStaff(staff.id, true);
+                  onAssignDirection(staff.id, '');
+                }
+              }}
+              className={`py-1.5 px-3 rounded-lg text-xs font-semibold flex items-center space-x-1 border shadow-2xs ${
+                staff.isExited
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                  : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+              }`}
+            >
+              {staff.isExited ? <UserCheck className="w-3.5 h-3.5" /> : <UserMinus className="w-3.5 h-3.5" />}
+              <span>{staff.isExited ? '恢复为在职' : '标记为已离职'}</span>
+            </button>
+          )}
         </div>
 
         {/* 2. 快速分配全天方向 (手机端一键直接点击选择) */}
-        <div>
-          <label className="text-xs font-bold text-slate-700 flex items-center mb-1.5">
-            <MapPin className="w-3.5 h-3.5 mr-1 text-indigo-600" />
-            一键快捷指派/更换走向
-          </label>
-          <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto p-1 bg-slate-50 rounded-xl border border-slate-200">
-            {directions.map((dir) => {
-              const isSelected = dir.id === currentDirectionId;
-              return (
-                <button
-                  key={dir.id}
-                  onClick={() => onAssignDirection(staff.id, dir.id)}
-                  className={`p-2 rounded-lg text-left text-xs font-semibold border flex items-center justify-between transition ${
-                    isSelected
-                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
-                      : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-400'
-                  }`}
-                >
-                  <span className="truncate">{dir.name}</span>
-                  {isSelected && <Check className="w-3.5 h-3.5 flex-shrink-0" />}
-                </button>
-              );
-            })}
+        {!staff.isExited && (
+          <div>
+            <label className="text-xs font-bold text-slate-700 flex items-center mb-1.5">
+              <MapPin className="w-3.5 h-3.5 mr-1 text-indigo-600" />
+              一键快捷指派/更换走向
+            </label>
+            <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto p-1 bg-slate-50 rounded-xl border border-slate-200">
+              {directions.map((dir) => {
+                const isSelected = dir.id === currentDirectionId;
+                return (
+                  <button
+                    key={dir.id}
+                    onClick={() => onAssignDirection(staff.id, dir.id)}
+                    className={`p-2 rounded-lg text-left text-xs font-semibold border flex items-center justify-between transition ${
+                      isSelected
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                        : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-400'
+                    }`}
+                  >
+                    <span className="truncate">{dir.name}</span>
+                    {isSelected && <Check className="w-3.5 h-3.5 flex-shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* 3. 进阶时段排班 (上午 / 下午 / 晚上) */}
-        <div className="p-2.5 bg-indigo-50/50 rounded-xl border border-indigo-100">
-          <label className="text-xs font-bold text-indigo-900 flex items-center mb-1.5">
-            <Clock className="w-3.5 h-3.5 mr-1 text-indigo-600" />
-            进阶时段精细排班 (可选)
-          </label>
-          
-          <div className="grid grid-cols-3 gap-1.5">
-            <div>
-              <span className="text-[10px] text-slate-500 block mb-0.5">上午 (08:30-12:00)</span>
-              <select
-                value={morningDir}
-                onChange={(e) => setMorningDir(e.target.value)}
-                className="w-full text-xs p-1 bg-white border border-slate-300 rounded focus:outline-none"
-              >
-                <option value="">全天默认</option>
-                {directions.map(d => (
-                  <option key={d.id} value={d.id}>{d.name}</option>
-                ))}
-              </select>
+        {!staff.isExited && (
+          <div className="p-2.5 bg-indigo-50/50 rounded-xl border border-indigo-100">
+            <label className="text-xs font-bold text-indigo-900 flex items-center mb-1.5">
+              <Clock className="w-3.5 h-3.5 mr-1 text-indigo-600" />
+              进阶时段精细排班 (可选)
+            </label>
+            
+            <div className="grid grid-cols-3 gap-1.5">
+              <div>
+                <span className="text-[10px] text-slate-500 block mb-0.5">上午 (08:30-12:00)</span>
+                <select
+                  value={morningDir}
+                  onChange={(e) => setMorningDir(e.target.value)}
+                  className="w-full text-xs p-1 bg-white border border-slate-300 rounded focus:outline-none"
+                >
+                  <option value="">全天默认</option>
+                  {directions.map(d => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <span className="text-[10px] text-slate-500 block mb-0.5">下午 (13:30-17:30)</span>
+                <select
+                  value={afternoonDir}
+                  onChange={(e) => setAfternoonDir(e.target.value)}
+                  className="w-full text-xs p-1 bg-white border border-slate-300 rounded focus:outline-none"
+                >
+                  <option value="">全天默认</option>
+                  {directions.map(d => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <span className="text-[10px] text-slate-500 block mb-0.5">晚上 (18:00-21:00)</span>
+                <select
+                  value={eveningDir}
+                  onChange={(e) => setEveningDir(e.target.value)}
+                  className="w-full text-xs p-1 bg-white border border-slate-300 rounded focus:outline-none"
+                >
+                  <option value="">全天默认</option>
+                  {directions.map(d => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            <div>
-              <span className="text-[10px] text-slate-500 block mb-0.5">下午 (13:30-17:30)</span>
-              <select
-                value={afternoonDir}
-                onChange={(e) => setAfternoonDir(e.target.value)}
-                className="w-full text-xs p-1 bg-white border border-slate-300 rounded focus:outline-none"
-              >
-                <option value="">全天默认</option>
-                {directions.map(d => (
-                  <option key={d.id} value={d.id}>{d.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <span className="text-[10px] text-slate-500 block mb-0.5">晚上 (18:00-21:00)</span>
-              <select
-                value={eveningDir}
-                onChange={(e) => setEveningDir(e.target.value)}
-                className="w-full text-xs p-1 bg-white border border-slate-300 rounded focus:outline-none"
-              >
-                <option value="">全天默认</option>
-                {directions.map(d => (
-                  <option key={d.id} value={d.id}>{d.name}</option>
-                ))}
-              </select>
-            </div>
+            <button
+              onClick={handleSaveSlots}
+              className="mt-2 w-full py-1 bg-indigo-600 text-white text-xs font-semibold rounded hover:bg-indigo-700 transition shadow-xs"
+            >
+              保存精细时段
+            </button>
           </div>
-
-          <button
-            onClick={handleSaveSlots}
-            className="mt-2 w-full py-1 bg-indigo-600 text-white text-xs font-semibold rounded hover:bg-indigo-700 transition shadow-xs"
-          >
-            保存精细时段
-          </button>
-        </div>
+        )}
 
         {/* 4. 个人备注编辑 */}
         <div>

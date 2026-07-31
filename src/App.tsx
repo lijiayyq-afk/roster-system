@@ -15,7 +15,6 @@ import { StaffModal } from './components/StaffModal';
 import { exportElementToImage, exportScheduleToExcel } from './utils/exportUtil';
 import { INITIAL_DIRECTIONS, INITIAL_STAFF } from './utils/mockData';
 
-// 真实组号列表
 const GROUPS = ['20501组', '20503组', '20504组', '20505组', '20511组', '20571组'];
 const REGIONS = ['昆山', '常熟', '太仓', '工业园区', '姑苏区', '吴江区', '相城区'];
 
@@ -44,7 +43,6 @@ export const App: React.FC = () => {
     setSchedules(loadSchedules());
   }, []);
 
-  // 重置为真实 148 人与 29 真实场景数据
   const handleResetToRealData = () => {
     if (confirm('确定将所有数据重置为真实 148 名人员与 29 个场景数据吗？')) {
       setStaffList(INITIAL_STAFF);
@@ -88,6 +86,29 @@ export const App: React.FC = () => {
 
     setDirections(updatedDirections);
     saveDirections(updatedDirections);
+  };
+
+  // 处理人员离职/恢复在职状态
+  const handleToggleExitStaff = (staffId: string, isExited: boolean) => {
+    const updatedStaff = staffList.map(s => {
+      if (s.id === staffId) {
+        return { ...s, isExited };
+      }
+      return s;
+    });
+
+    setStaffList(updatedStaff);
+    saveStaff(updatedStaff);
+
+    if (selectedStaff && selectedStaff.id === staffId) {
+      setSelectedStaff({ ...selectedStaff, isExited });
+    }
+  };
+
+  // 处理场景卡片拖拽排序
+  const handleReorderDirections = (newOrderedDirections: Direction[]) => {
+    setDirections(newOrderedDirections);
+    saveDirections(newOrderedDirections);
   };
 
   const handleSaveSlotSchedule = (staffId: string, slots: PersonSlotSchedule) => {
@@ -294,6 +315,7 @@ export const App: React.FC = () => {
             onClickStaffCard={setSelectedStaff}
             onUpdateSelfExploreArea={handleUpdateSelfExploreArea}
             onSwitchToSpecificView={(view) => setActiveView(view as ViewType)}
+            onReorderDirections={handleReorderDirections}
           />
         )}
       </main>
@@ -312,6 +334,7 @@ export const App: React.FC = () => {
           onSetCaptain={handleSetCaptain}
           onSaveSlotSchedule={handleSaveSlotSchedule}
           onSaveNotes={handleSaveNotes}
+          onToggleExitStaff={handleToggleExitStaff}
         />
       )}
 
