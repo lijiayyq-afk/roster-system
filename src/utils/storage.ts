@@ -1,9 +1,9 @@
 import { Direction, Staff, DailySchedule } from '../types';
 import { INITIAL_DIRECTIONS, INITIAL_STAFF, INITIAL_SCHEDULES } from './mockData';
 
-const STAFF_KEY = 'roster_staff_list_v2';
-const DIRECTIONS_KEY = 'roster_directions_list_v2';
-const SCHEDULES_KEY = 'roster_schedules_v2';
+const STAFF_KEY = 'roster_staff_list_v4_clean';
+const DIRECTIONS_KEY = 'roster_directions_list_v4_clean';
+const SCHEDULES_KEY = 'roster_schedules_v4_clean';
 
 export const loadStaff = (): Staff[] => {
   const data = localStorage.getItem(STAFF_KEY);

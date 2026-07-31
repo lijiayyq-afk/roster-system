@@ -1,6 +1,6 @@
 import { Direction, Staff, DailySchedule } from '../types';
 
-// 真实场景列表 (29 个真实场景)
+// 真实场景列表 (来自 场景.txt 29 个真实场景)
 const REAL_SCENE_NAMES = [
   "商圈大促-苏州中心",
   "永辉超市（高铁新城店）",
@@ -33,24 +33,18 @@ const REAL_SCENE_NAMES = [
   "盒马鲜生（印象城）"
 ];
 
-// 生成方向/场景对象
+// 生成方向/场景对象 (纯净真实)
 export const INITIAL_DIRECTIONS: Direction[] = [
-  // 29 个真实合作方场景
   ...REAL_SCENE_NAMES.map((name, index) => ({
     id: `dir-scene-${index + 1}`,
     name,
     category: 'scene' as const,
-    captainId: null
+    captainId: null,
+    isPinned: false
   })),
 
-  // 厅堂支行 (Branches)
-  { id: 'dir-b1', name: '昆山支行厅堂', category: 'branch', captainId: null },
-  { id: 'dir-b2', name: '常熟支行厅堂', category: 'branch', captainId: null },
-  { id: 'dir-b3', name: '太仓支行厅堂', category: 'branch', captainId: null },
-  { id: 'dir-b4', name: '园区支行厅堂', category: 'branch', captainId: null },
-  { id: 'dir-b5', name: '姑苏支行厅堂', category: 'branch', captainId: null },
-
-  // 名单/自拓/休假/待离职
+  // 基础常用分类
+  { id: 'dir-b1', name: '厅堂支行网点', category: 'branch', captainId: null },
   { id: 'dir-list', name: '线上名单收件', category: 'list', captainId: null },
   { id: 'dir-explore', name: '自助寻找获客(自拓)', category: 'self_explore', captainId: null },
   { id: 'dir-vacation', name: '休假(不作业)', category: 'vacation', captainId: null },
@@ -98,30 +92,17 @@ const RAW_STAFF_DATA: [string, string][] = [
   ["20571", "宓源"], ["20571", "金春秀"]
 ];
 
-const REGIONS = ['昆山', '常熟', '太仓', '工业园区', '姑苏区', '吴江区', '相城区'];
-const EXPERIENCES = ['regular', 'expert', 'novice'] as const;
-
+// 彻底清除地区与经验的 mock 数据，统一标记为 '待定'
 export const INITIAL_STAFF: Staff[] = RAW_STAFF_DATA.map(([groupCode, name], index) => ({
   id: `staff-${index + 1}`,
   name,
   groupId: `${groupCode}组`,
-  region: REGIONS[index % REGIONS.length],
-  experience: EXPERIENCES[index % EXPERIENCES.length],
-  entryDate: `2025-0${(index % 9) + 1}-15`,
-  notes: ''
+  region: '待定',
+  experience: 'regular',
+  entryDate: '',
+  notes: '',
+  isExited: false
 }));
 
-export const INITIAL_SCHEDULES: Record<string, DailySchedule> = {
-  '2026-07-30': {
-    date: '2026-07-30',
-    assignments: {
-      'staff-1': 'dir-scene-1',
-      'staff-2': 'dir-scene-1',
-      'staff-35': 'dir-scene-2',
-      'staff-36': 'dir-scene-2',
-      'staff-82': 'dir-scene-5',
-    },
-    slotAssignments: {},
-    selfExplorePairs: []
-  }
-};
+// 初始纯净排班方案 (空排班，等待用户真实安排)
+export const INITIAL_SCHEDULES: Record<string, DailySchedule> = {};

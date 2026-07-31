@@ -6,7 +6,6 @@ import { Header } from './components/Header';
 import { ViewTabs, ViewType } from './components/ViewTabs';
 import { BoardView } from './components/BoardView';
 import { SceneView } from './components/SceneView';
-import { GroupView } from './components/GroupView';
 import { ListView } from './components/ListView';
 import { VacationView } from './components/VacationView';
 import { BottomSheet } from './components/BottomSheet';
@@ -15,7 +14,7 @@ import { StaffModal } from './components/StaffModal';
 import { exportElementToImage, exportScheduleToExcel } from './utils/exportUtil';
 
 const GROUPS = ['20501组', '20503组', '20504组', '20505组', '20511组', '20571组'];
-const REGIONS = ['昆山', '常熟', '太仓', '工业园区', '姑苏区', '吴江区', '相城区'];
+const REGIONS = ['待定', '昆山', '常熟', '太仓', '工业园区', '姑苏区', '吴江区', '相城区'];
 
 export const App: React.FC = () => {
   const todayStr = new Date().toISOString().split('T')[0];
@@ -28,7 +27,7 @@ export const App: React.FC = () => {
   const [colorMode, setColorMode] = useState<ColorHighlightMode>('none');
   const [activeView, setActiveView] = useState<ViewType>('board');
   
-  // 默认 isEditMode = false (仅预览模式)，需点击“编辑排班”才进入拖拽编辑
+  // 默认 isEditMode = false (仅预览模式)
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
 
   const [staffList, setStaffList] = useState<Staff[]>([]);

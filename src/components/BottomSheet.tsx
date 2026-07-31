@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { X, Award, MapPin, Clock, FileText, Check, AlertCircle, RotateCcw, UserMinus, UserCheck } from 'lucide-react';
+import { X, Award, MapPin, Clock, FileText, Check, RotateCcw, UserMinus, UserCheck } from 'lucide-react';
 import { Direction, PersonSlotSchedule, Staff } from '../types';
-import { checkExperienceUpgrade } from '../models/StaffModel';
 
 interface BottomSheetProps {
   staff: Staff | null;
@@ -38,8 +37,6 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   const [afternoonDir, setAfternoonDir] = useState(slotSchedule?.afternoon || currentDirectionId || '');
   const [eveningDir, setEveningDir] = useState(slotSchedule?.evening || currentDirectionId || '');
 
-  const isMaturedNovice = checkExperienceUpgrade(staff);
-
   const handleSaveSlots = () => {
     onSaveSlotSchedule(staff.id, {
       morning: morningDir,
@@ -63,7 +60,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             <div className="flex items-center space-x-2">
               <h3 className="text-base font-bold text-slate-800">{staff.name}</h3>
               <span className="text-xs px-2 py-0.5 bg-slate-100 text-slate-600 rounded font-medium">
-                {staff.groupId} · {staff.region}
+                {staff.groupId} {staff.region !== '待定' ? `· ${staff.region}` : ''}
               </span>
               {staff.isExited && (
                 <span className="text-[10px] bg-rose-100 text-rose-700 font-bold px-1.5 py-0.5 rounded">
@@ -71,22 +68,12 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              经验: {staff.experience === 'expert' ? '高手' : staff.experience === 'novice' ? '新手' : '一般人'}
-            </p>
           </div>
           
           <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-full">
             <X className="w-5 h-5 text-slate-500" />
           </button>
         </div>
-
-        {isMaturedNovice && !staff.isExited && (
-          <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center space-x-2 text-xs text-emerald-800">
-            <AlertCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-            <span>已入职满 90 天（新手期），建议可升级为“一般人”或“高手”！</span>
-          </div>
-        )}
 
         {/* 1. 设置队长 & 退回人员库 & 离职管理 */}
         <div className="flex flex-wrap gap-2">
@@ -117,13 +104,12 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             </button>
           )}
 
-          {/* 离职 / 重新在职切换按钮 */}
           {onToggleExitStaff && (
             <button
               onClick={() => {
                 if (staff.isExited) {
                   onToggleExitStaff(staff.id, false);
-                } else if (confirm(`确定将成员 [${staff.name}] 标记为已离职吗？离职后默认不在常规排班全员库中展示。`)) {
+                } else if (confirm(`确定将成员 [${staff.name}] 标记为已离职吗？`)) {
                   onToggleExitStaff(staff.id, true);
                   onAssignDirection(staff.id, '');
                 }
@@ -140,7 +126,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
           )}
         </div>
 
-        {/* 2. 快速分配全天方向 (手机端一键直接点击选择) */}
+        {/* 2. 快速分配全天方向 */}
         {!staff.isExited && (
           <div>
             <label className="text-xs font-bold text-slate-700 flex items-center mb-1.5">
@@ -239,7 +225,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="仅在点击人员详情时显示，如能力特长、请假说明等..."
+            placeholder="填写业务说明或特殊排班备注..."
             className="w-full text-xs p-1.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
             rows={2}
           ></textarea>
