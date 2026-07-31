@@ -3,7 +3,7 @@ import { AuthUser, ColorHighlightMode, DailySchedule, Direction, Staff } from '.
 import { PersonCard } from './PersonCard';
 import { canEditStaff } from '../models/PermissionModel';
 import { sortStaffWithCaptain } from '../models/StaffModel';
-import { Building, Award, Users } from 'lucide-react';
+import { Building, Award, Users, ChevronDown } from 'lucide-react';
 
 interface SceneViewProps {
   schedule: DailySchedule;
@@ -24,6 +24,7 @@ export const SceneView: React.FC<SceneViewProps> = ({
   onMoveStaff,
   onClickStaffCard
 }) => {
+  // 默认 'all' 表示 全场景 (总视图)
   const [selectedSceneId, setSelectedSceneId] = useState<string>('all');
 
   const sceneDirections = directions.filter((d) => d.category === 'scene');
@@ -45,49 +46,60 @@ export const SceneView: React.FC<SceneViewProps> = ({
 
   return (
     <div id="scene-view-export" className="space-y-3">
-      <div className="flex items-center space-x-2 bg-white p-2 rounded-xl border border-slate-200 shadow-sm overflow-x-auto no-scrollbar">
-        <span className="text-xs font-bold text-slate-500 whitespace-nowrap px-1 flex items-center">
-          <Building className="w-4 h-4 mr-1 text-blue-600" />
-          场景视角维度:
-        </span>
+      {/* 场景视角顶部控制栏：默认全场景，避免场景平铺过长 */}
+      <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
+        <div className="flex items-center space-x-2">
+          <div className="p-1.5 bg-blue-100 rounded-lg text-blue-700">
+            <Building className="w-4 h-4" />
+          </div>
+          <div>
+            <h4 className="text-xs font-bold text-slate-800">场景视角查看</h4>
+            <p className="text-[10px] text-slate-400">默认展示全场景，可下拉选择特定单场景</p>
+          </div>
+        </div>
 
-        <button
-          onClick={() => setSelectedSceneId('all')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap ${
-            selectedSceneId === 'all'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-          }`}
-        >
-          🌐 所有场景 (总视图)
-        </button>
+        {/* 简洁维度选择 */}
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setSelectedSceneId('all')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+              selectedSceneId === 'all'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            🌐 全场景 (总视图)
+          </button>
 
-        {sceneDirections.map((scene) => {
-          const isSelected = scene.id === selectedSceneId;
-          const count = getStaffForScene(scene.id).length;
-          return (
-            <button
-              key={scene.id}
-              onClick={() => setSelectedSceneId(scene.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 whitespace-nowrap ${
-                isSelected
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          {/* 特定场景选择下拉框 (下拉查看个别场景) */}
+          <div className="relative">
+            <select
+              value={selectedSceneId === 'all' ? '' : selectedSceneId}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSelectedSceneId(val || 'all');
+              }}
+              className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg border focus:outline-none cursor-pointer ${
+                selectedSceneId !== 'all'
+                  ? 'bg-blue-50 border-blue-400 text-blue-800 font-bold'
+                  : 'bg-slate-100 border-slate-300 text-slate-700'
               }`}
             >
-              <span>{scene.name}</span>
-              <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                  isSelected ? 'bg-blue-700 text-blue-100' : 'bg-slate-200 text-slate-600'
-                }`}
-              >
-                {count}人
-              </span>
-            </button>
-          );
-        })}
+              <option value="">切换个别场景 ▾</option>
+              {sceneDirections.map((scene) => {
+                const count = getStaffForScene(scene.id).length;
+                return (
+                  <option key={scene.id} value={scene.id}>
+                    {scene.name} ({count}人)
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        </div>
       </div>
 
+      {/* 场景内容区 */}
       <div className={`grid gap-3 ${selectedSceneId === 'all' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
         {displayScenes.map((scene) => {
           const assignedStaff = getStaffForScene(scene.id);
