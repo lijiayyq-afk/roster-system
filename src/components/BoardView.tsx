@@ -4,7 +4,7 @@ import { AuthUser, ColorHighlightMode, DailySchedule, Direction, Staff } from '.
 import { PersonCard, formatGroupMinimal } from './PersonCard';
 import { canEditStaff, filterStaffByAuthUser } from '../models/PermissionModel';
 import { sortStaffWithCaptain } from '../models/StaffModel';
-import { Compass, Users, GripVertical, CheckCircle2, Pin, Trash2, ChevronDown, ChevronUp, Layers, FolderClosed, FolderOpen } from 'lucide-react';
+import { Users, GripVertical, CheckCircle2, Pin, Trash2, ChevronDown, ChevronUp, Layers, FolderClosed, FolderOpen } from 'lucide-react';
 
 interface BoardViewProps {
   isDefaultBoardView: boolean;
@@ -36,7 +36,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
   isEditMode,
   onMoveStaff,
   onClickStaffCard,
-  onUpdateSelfExploreArea,
   onSwitchToSpecificView,
   onReorderDirections,
   onTogglePinDirection,
@@ -120,7 +119,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
     };
   }, [directions, schedule, authUser, staffList, onReorderDirections, isEditMode]);
 
-  // 单卡片折叠
   const toggleSingleSceneFold = (sceneId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setCollapsedSceneIds((prev) => {
@@ -134,7 +132,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
     });
   };
 
-  // 全量一键折叠 / 展开所有场景 (原地双态切换)
   const toggleFoldAllScenes = () => {
     if (collapsedSceneIds.size === directions.length) {
       setCollapsedSceneIds(new Set());
@@ -171,7 +168,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
 
   const isLeaderRole = authUser.role === 'leader' && !!authUser.groupId;
 
-  // 分类与底部分割极简化：场景 -> (分割线) -> 自拓 -> 厅堂 -> 名单
+  // 分类与底部分割：场景 -> (分割线) -> 自拓 -> 厅堂 -> 名单
   const allScenes = directions.filter((d) => d.category === 'scene');
   const exploreDirs = directions.filter((d) => d.category === 'self_explore');
   const branches = directions.filter((d) => d.category === 'branch');
@@ -349,32 +346,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
             )}
           </div>
         )}
-
-        {!isCollapsed && dir.category === 'self_explore' && (
-          <div className="p-1 bg-purple-50/60 border-t border-purple-100">
-            <div className="text-[10px] font-bold text-purple-900 flex items-center mb-0.5">
-              <Compass className="w-3 h-3 mr-1 text-purple-600" />
-              自拓区域规划
-            </div>
-            {schedule.selfExplorePairs.map((pair) => {
-              const pairStaff = visibleStaffList.filter((s) => pair.staffIds.includes(s.id));
-              return (
-                <div key={pair.id} className="p-1 bg-white rounded border border-purple-200 text-[10px] mb-0.5">
-                  <div className="font-semibold text-purple-800 mb-0.5">
-                    搭档: {pairStaff.map((s) => s.name).join('+') || '未选'}
-                  </div>
-                  <input
-                    type="text"
-                    value={pair.plannedArea}
-                    onChange={(e) => onUpdateSelfExploreArea(pair.id, e.target.value)}
-                    placeholder="规划区域..."
-                    className="w-full text-[10px] p-0.5 border border-slate-200 rounded focus:outline-none"
-                  />
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
     );
   };
@@ -438,7 +409,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
         {/* 右侧【场景区】与底部【分割公共类别区】 */}
         <div className="flex-1 space-y-3 w-full">
           
-          {/* 场景区总控栏：极简命名 `场景` + 双态一键折叠按钮 */}
+          {/* 场景区总控栏 */}
           <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs text-xs font-bold text-slate-700">
             <div className="flex items-center space-x-1.5">
               <Layers className="w-4 h-4 text-blue-600" />
