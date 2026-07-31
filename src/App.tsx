@@ -13,7 +13,6 @@ import { BottomSheet } from './components/BottomSheet';
 import { DirectionModal } from './components/DirectionModal';
 import { StaffModal } from './components/StaffModal';
 import { exportElementToImage, exportScheduleToExcel } from './utils/exportUtil';
-import { INITIAL_DIRECTIONS, INITIAL_STAFF } from './utils/mockData';
 
 const GROUPS = ['20501组', '20503组', '20504组', '20505组', '20511组', '20571组'];
 const REGIONS = ['昆山', '常熟', '太仓', '工业园区', '姑苏区', '吴江区', '相城区'];
@@ -42,16 +41,6 @@ export const App: React.FC = () => {
     setDirections(loadDirections());
     setSchedules(loadSchedules());
   }, []);
-
-  const handleResetToRealData = () => {
-    if (confirm('确定将所有数据重置为真实 148 名人员与 29 个场景数据吗？')) {
-      setStaffList(INITIAL_STAFF);
-      setDirections(INITIAL_DIRECTIONS);
-      saveStaff(INITIAL_STAFF);
-      saveDirections(INITIAL_DIRECTIONS);
-      alert('已成功重置为真实 148 人员与 29 场景数据！');
-    }
-  };
 
   const currentSchedule = getOrInheritSchedule(currentDate, schedules);
 
@@ -88,7 +77,6 @@ export const App: React.FC = () => {
     saveDirections(updatedDirections);
   };
 
-  // 处理人员离职/恢复在职状态
   const handleToggleExitStaff = (staffId: string, isExited: boolean) => {
     const updatedStaff = staffList.map(s => {
       if (s.id === staffId) {
@@ -105,7 +93,6 @@ export const App: React.FC = () => {
     }
   };
 
-  // 处理场景卡片拖拽排序
   const handleReorderDirections = (newOrderedDirections: Direction[]) => {
     setDirections(newOrderedDirections);
     saveDirections(newOrderedDirections);
@@ -260,7 +247,6 @@ export const App: React.FC = () => {
         onExportImage={handleExportImage}
         onOpenStaffModal={() => setIsStaffModalOpen(true)}
         onOpenDirectionModal={() => setIsDirectionModalOpen(true)}
-        onResetData={handleResetToRealData}
       />
 
       <ViewTabs activeView={activeView} onViewChange={setActiveView} />
