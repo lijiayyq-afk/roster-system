@@ -1,5 +1,5 @@
 import React from 'react';
-import { Award, Lock, Clock } from 'lucide-react';
+import { Lock, Clock } from 'lucide-react';
 import { ColorHighlightMode, PersonSlotSchedule, Staff } from '../types';
 
 interface PersonCardProps {
@@ -20,6 +20,8 @@ export const PersonCard: React.FC<PersonCardProps> = ({
   onClickCard
 }) => {
   const hasCustomSlots = slotSchedule && (slotSchedule.morning || slotSchedule.afternoon || slotSchedule.evening);
+
+  const cleanGroupLabel = (g: string) => g.replace(/组$/, '');
 
   const getChipStyle = () => {
     if (colorMode === 'experience') {
@@ -46,21 +48,24 @@ export const PersonCard: React.FC<PersonCardProps> = ({
     <div
       onClick={() => onClickCard(staff)}
       data-id={staff.id}
-      className={`inline-flex items-center justify-between px-2 py-1 rounded-md border text-xs font-semibold transition-all active:scale-95 cursor-pointer max-w-full ${
+      className={`inline-flex items-center justify-between px-2 py-0.5 rounded-md border text-xs font-semibold transition-all active:scale-95 cursor-pointer max-w-full ${
         !canEdit ? 'opacity-65 bg-slate-100 border-slate-200 cursor-not-allowed' : getChipStyle()
       } ${isCaptain ? 'ring-2 ring-amber-400 border-amber-400 font-bold bg-amber-50' : ''}`}
     >
       <div className="flex items-center space-x-1 truncate">
+        {/* 队长金黄星标 👑 */}
         {isCaptain && (
-          <span className="text-amber-600 flex-shrink-0" title="队长">
-            <Award className="w-3.5 h-3.5 inline" />
+          <span className="text-amber-600 flex-shrink-0 text-xs" title="队长">
+            👑
           </span>
         )}
 
+        {/* 姓名 */}
         <span className="truncate">{staff.name}</span>
 
+        {/* 组号（清理去掉“组”字） */}
         <span className="text-[9px] text-slate-400 font-normal scale-90 origin-left">
-          {staff.groupId}
+          {cleanGroupLabel(staff.groupId)}
         </span>
       </div>
 

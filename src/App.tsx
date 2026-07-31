@@ -27,6 +27,9 @@ export const App: React.FC = () => {
 
   const [colorMode, setColorMode] = useState<ColorHighlightMode>('none');
   const [activeView, setActiveView] = useState<ViewType>('board');
+  
+  // 默认 isEditMode = false (仅预览模式)，需点击“编辑排班”才进入拖拽编辑
+  const [isEditMode, setIsEditMode] = useState<boolean>(false);
 
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [directions, setDirections] = useState<Direction[]>([]);
@@ -234,7 +237,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen p-2 md:p-4 max-w-7xl mx-auto">
+    <div className="min-h-screen p-2 md:p-3 max-w-7xl mx-auto">
       <Header
         currentDate={currentDate}
         onDateChange={setCurrentDate}
@@ -243,6 +246,8 @@ export const App: React.FC = () => {
         colorMode={colorMode}
         onChangeColorMode={setColorMode}
         groups={GROUPS}
+        isEditMode={isEditMode}
+        onToggleEditMode={() => setIsEditMode(!isEditMode)}
         onExportExcel={() => exportScheduleToExcel(currentSchedule, staffList, directions)}
         onExportImage={handleExportImage}
         onOpenStaffModal={() => setIsStaffModalOpen(true)}
@@ -297,6 +302,7 @@ export const App: React.FC = () => {
             directions={getFilteredDirections()}
             authUser={authUser}
             colorMode={colorMode}
+            isEditMode={isEditMode}
             onMoveStaff={handleMoveStaff}
             onClickStaffCard={setSelectedStaff}
             onUpdateSelfExploreArea={handleUpdateSelfExploreArea}
@@ -341,6 +347,7 @@ export const App: React.FC = () => {
           onClose={() => setIsStaffModalOpen(false)}
           onAddStaff={handleAddStaff}
           onDeleteStaff={handleDeleteStaff}
+          onToggleExitStaff={handleToggleExitStaff}
         />
       )}
     </div>

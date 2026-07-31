@@ -4,7 +4,7 @@ import { AuthUser, ColorHighlightMode, DailySchedule, Direction, Staff } from '.
 import { PersonCard } from './PersonCard';
 import { canEditStaff } from '../models/PermissionModel';
 import { sortStaffWithCaptain } from '../models/StaffModel';
-import { Award, Compass, MapPin, Users, Search, Filter, GripVertical, UserMinus } from 'lucide-react';
+import { Compass, MapPin, Users, Search, Filter, GripVertical, CheckCircle2 } from 'lucide-react';
 
 interface BoardViewProps {
   isDefaultBoardView: boolean;
@@ -13,6 +13,7 @@ interface BoardViewProps {
   directions: Direction[];
   authUser: AuthUser;
   colorMode: ColorHighlightMode;
+  isEditMode: boolean;
   onMoveStaff: (staffId: string, targetDirectionId: string) => void;
   onClickStaffCard: (staff: Staff) => void;
   onUpdateSelfExploreArea: (pairId: string, area: string) => void;
@@ -27,6 +28,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
   directions,
   authUser,
   colorMode,
+  isEditMode,
   onMoveStaff,
   onClickStaffCard,
   onUpdateSelfExploreArea,
@@ -35,12 +37,10 @@ export const BoardView: React.FC<BoardViewProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   
-  // 组号过滤：如果是组长身份，默认锁定并只展示本组组员！
   const isLeaderRole = authUser.role === 'leader' && !!authUser.groupId;
   const [filterGroup, setFilterGroup] = useState<string>(isLeaderRole ? (authUser.groupId || 'all') : 'all');
 
-  // 是否显示已离职人员，默认 false
-  const [showExited, setShowExited] = useState<boolean>(false);
+  const cleanGroupLabel = (g: string) => g.replace(/组$/, '');
 
   useEffect(() => {
     if (isLeaderRole && authUser.groupId) {
@@ -49,6 +49,9 @@ export const BoardView: React.FC<BoardViewProps> = ({
   }, [authUser]);
 
   useEffect(() => {
+    // 只有在 isEditMode 编辑模式下才开启拖拽功能！
+    if (!isEditMode) return;
+
     // 1. 绑定人员拖拽
     const personContainers = document.querySelectorAll('.drag-container');
     const personSortables: Sortable[] = [];
@@ -85,7 +88,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
       personSortables.push(s);
     });
 
-    // 2. 绑定场景卡片本身拖拽排序
+    // 2. 绑定场景卡片拖拽排序
     const sceneGrid = document.querySelector('.scene-grid-container');
     let sceneSortable: Sortable | null = null;
     if (sceneGrid && onReorderDirections) {
@@ -103,7 +106,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
             if (found) reordered.push(found);
           });
 
-          // 保留未在此 grid 中展示的其他方向
           directions.forEach(d => {
             if (!newOrderedIds.includes(d.id)) {
               reordered.push(d);
@@ -119,14 +121,10 @@ export const BoardView: React.FC<BoardViewProps> = ({
       personSortables.forEach((s) => s.destroy());
       if (sceneSortable) sceneSortable.destroy();
     };
-  }, [directions, schedule, authUser, staffList, onReorderDirections]);
+  }, [directions, schedule, authUser, staffList, onReorderDirections, isEditMode]);
 
-  // 所有未分配方向的人员 (按离职状态与权限过滤)
-  const unassignedRawList = staffList.filter((s) => {
-    const isUnassigned = !schedule.assignments[s.id];
-    const matchExit = showExited ? true : !s.isExited;
-    return isUnassigned && matchExit;
-  });
+  // 所有未分配人员 (排除已离职)
+  const unassignedRawList = staffList.filter((s) => !schedule.assignments[s.id] && !s.isExited);
 
   // 针对全员库实施组长专属过滤与搜姓名过滤
   const filteredUnassignedList = unassignedRawList.filter((s) => {
@@ -142,17 +140,13 @@ export const BoardView: React.FC<BoardViewProps> = ({
       .filter(([_, dId]) => dId === dirId)
       .map(([sId, _]) => sId);
 
-    const dirStaff = staffList.filter((s) => {
-      const matchDir = assignedIds.includes(s.id);
-      const matchExit = showExited ? true : !s.isExited;
-      return matchDir && matchExit;
-    });
-
+    const dirStaff = staffList.filter((s) => assignedIds.includes(s.id) && !s.isExited);
     const dir = directions.find((d) => d.id === dirId);
 
     return sortStaffWithCaptain(dirStaff, dir?.captainId);
   };
 
+  // 场景排序：合作方场景按“已安排人数从多到少”排序，厅堂/名单/自拓/休假/待离职固定在最后
   let displayDirections = [...directions];
 
   if (isDefaultBoardView) {
@@ -163,8 +157,15 @@ export const BoardView: React.FC<BoardViewProps> = ({
     const vacationDirs = directions.filter((d) => d.category === 'vacation');
     const exitDirs = directions.filter((d) => d.category === 'pending_exit');
 
+    // 如果不在人工自定义拖拽阶段，按人数降序排列场景
+    const sortedScenes = [...scenes].sort((a, b) => {
+      const countA = getStaffForDirection(a.id).length;
+      const countB = getStaffForDirection(b.id).length;
+      return countB - countA;
+    });
+
     displayDirections = [
-      ...scenes,
+      ...sortedScenes,
       ...(branches.length > 0 ? [branches[0]] : []),
       ...listDirs,
       ...exploreDirs,
@@ -173,102 +174,102 @@ export const BoardView: React.FC<BoardViewProps> = ({
     ];
   }
 
+  const isAllAssigned = filteredUnassignedList.length === 0;
+
   return (
     <div id="board-view-export" className="flex flex-col lg:flex-row gap-3 items-start">
       
-      {/* 左侧【待排班人员库】面板 (当为组长身份时自动缩短仅展示本组人员) */}
-      <div className="w-full lg:w-72 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex-shrink-0">
-        <div className="px-3 py-2.5 bg-slate-800 text-white flex items-center justify-between">
+      {/* 左侧【待排班全员人员库】面板 (全排完缩为一行，高度自适应) */}
+      <div className={`w-full lg:w-72 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex-shrink-0 transition-all ${
+        isAllAssigned ? 'py-0' : ''
+      }`}>
+        <div className="px-3 py-2 bg-slate-800 text-white flex items-center justify-between">
           <div className="flex items-center space-x-1.5 font-bold text-xs">
-            <Users className="w-4 h-4 text-indigo-400" />
+            <Users className="w-3.5 h-3.5 text-indigo-400" />
             <span>
-              {isLeaderRole ? `${authUser.groupId} 待排班库` : '待排班全员库'}
+              {isLeaderRole ? `${cleanGroupLabel(authUser.groupId || '')} 待排班库` : '待排班全员库'}
             </span>
           </div>
-          <span className="text-[11px] bg-slate-700 text-slate-200 font-mono font-bold px-2 py-0.5 rounded-full">
-            {filteredUnassignedList.length} 人
-          </span>
-        </div>
 
-        {/* 工具栏：组选与搜索姓名 */}
-        <div className="p-2 bg-slate-100/90 border-b border-slate-200 space-y-1.5">
-          <div className="relative">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-2" />
-            <input
-              type="text"
-              placeholder="搜索人员姓名..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-7 pr-2 py-1 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500"
-            />
-          </div>
-
-          <div className="flex items-center justify-between text-[11px]">
-            {!isLeaderRole ? (
-              <div className="flex items-center space-x-1">
-                <Filter className="w-3 h-3 text-slate-400" />
-                <select
-                  value={filterGroup}
-                  onChange={(e) => setFilterGroup(e.target.value)}
-                  className="p-1 bg-white border border-slate-300 rounded focus:outline-none font-semibold text-slate-700"
-                >
-                  <option value="all">全部组 ({unassignedRawList.length}人)</option>
-                  {allGroupNames.map((g) => (
-                    <option key={g} value={g}>{g}</option>
-                  ))}
-                </select>
-              </div>
-            ) : (
-              <span className="text-indigo-700 font-bold bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
-                已锁定 {authUser.groupId} 组内指派
-              </span>
-            )}
-
-            {/* 离职人员开关 */}
-            <button
-              onClick={() => setShowExited(!showExited)}
-              className={`px-1.5 py-0.5 rounded text-[10px] font-bold flex items-center space-x-0.5 border ${
-                showExited
-                  ? 'bg-rose-100 text-rose-800 border-rose-300'
-                  : 'bg-slate-200 text-slate-600 border-slate-300'
-              }`}
-              title="查看或隐藏离职人员"
-            >
-              <UserMinus className="w-2.5 h-2.5" />
-              <span>{showExited ? '显已离职' : '隐离职'}</span>
-            </button>
+          <div className="flex items-center space-x-1">
+            <span className={`text-[10px] font-mono font-bold px-2 py-0.2 rounded-full ${
+              isAllAssigned ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-200'
+            }`}>
+              {isAllAssigned ? '已全部完成排班' : `${filteredUnassignedList.length} 人待定`}
+            </span>
           </div>
         </div>
 
-        {/* 待排班人员容器 */}
-        <div
-          data-direction-id=""
-          className="drag-container p-2 max-h-56 lg:max-h-[72vh] overflow-y-auto flex flex-wrap content-start gap-1.5 bg-slate-50/50 min-h-[90px]"
-        >
-          {filteredUnassignedList.map((staff) => {
-            const canEdit = canEditStaff(authUser, staff);
-            return (
-              <PersonCard
-                key={staff.id}
-                staff={staff}
-                canEdit={canEdit}
-                colorMode={colorMode}
-                slotSchedule={schedule.slotAssignments[staff.id]}
-                onClickCard={onClickStaffCard}
-              />
-            );
-          })}
-
-          {filteredUnassignedList.length === 0 && (
-            <div className="w-full h-16 flex items-center justify-center text-slate-400 text-xs text-center border border-dashed border-slate-200 rounded-lg">
-              {isLeaderRole ? `${authUser.groupId} 组内全员完成排班 🎉` : '全员已完成排班安排 🎉'}
+        {/* 当全员完成排班时缩写为精简一行，不占用屏幕大片空间 */}
+        {isAllAssigned ? (
+          <div className="px-3 py-1.5 bg-emerald-50 text-emerald-800 text-xs font-semibold flex items-center justify-between">
+            <div className="flex items-center space-x-1">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>全员已完成排班规划</span>
             </div>
-          )}
-        </div>
+            <span className="text-[10px] text-emerald-600 font-mono">
+              总计 {staffList.filter(s => !s.isExited).length} 人已就位
+            </span>
+          </div>
+        ) : (
+          <>
+            {/* 搜姓名与组筛选 */}
+            <div className="p-1.5 bg-slate-100/90 border-b border-slate-200 space-y-1">
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-1.5" />
+                <input
+                  type="text"
+                  placeholder="搜索人员姓名..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-7 pr-2 py-0.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              {!isLeaderRole && (
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-slate-500 font-medium flex items-center">
+                    <Filter className="w-3 h-3 mr-1 text-slate-400" /> 筛选:
+                  </span>
+                  <select
+                    value={filterGroup}
+                    onChange={(e) => setFilterGroup(e.target.value)}
+                    className="p-0.5 bg-white border border-slate-300 rounded focus:outline-none font-semibold text-slate-700 text-[11px]"
+                  >
+                    <option value="all">全部组 ({unassignedRawList.length}人)</option>
+                    {allGroupNames.map((g) => (
+                      <option key={g} value={g}>{cleanGroupLabel(g)}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {/* 待排班人员容器 (高度自适应) */}
+            <div
+              data-direction-id=""
+              className="drag-container p-2 max-h-52 lg:max-h-[68vh] overflow-y-auto flex flex-wrap content-start gap-1.5 bg-slate-50/50 min-h-[60px]"
+            >
+              {filteredUnassignedList.map((staff) => {
+                const canEdit = canEditStaff(authUser, staff);
+                return (
+                  <PersonCard
+                    key={staff.id}
+                    staff={staff}
+                    canEdit={canEdit}
+                    colorMode={colorMode}
+                    slotSchedule={schedule.slotAssignments[staff.id]}
+                    onClickCard={onClickStaffCard}
+                  />
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
 
-      {/* 右侧【各场景/方向看板网格】 (支持场景卡片拖拽排序) */}
-      <div className="scene-grid-container flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 w-full">
+      {/* 右侧【各场景/方向看板网格】 */}
+      <div className="scene-grid-container flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5 w-full">
         {displayDirections.map((dir) => {
           const isAggregateBranch = isDefaultBoardView && dir.category === 'branch';
 
@@ -278,30 +279,26 @@ export const BoardView: React.FC<BoardViewProps> = ({
             const assignedIds = Object.entries(schedule.assignments)
               .filter(([_, dId]) => branchIds.includes(dId))
               .map(([sId, _]) => sId);
-            assignedStaff = staffList.filter((s) => {
-              const match = assignedIds.includes(s.id);
-              const matchExit = showExited ? true : !s.isExited;
-              return match && matchExit;
-            });
+            assignedStaff = staffList.filter((s) => assignedIds.includes(s.id) && !s.isExited);
           } else {
             assignedStaff = getStaffForDirection(dir.id);
           }
-
-          const captain = staffList.find((s) => s.id === dir.captainId);
 
           return (
             <div
               key={dir.id}
               data-scene-id={dir.id}
-              className="bg-white rounded-xl border border-slate-200/90 shadow-sm overflow-hidden flex flex-col min-h-[140px]"
+              className="bg-white rounded-xl border border-slate-200/90 shadow-sm overflow-hidden flex flex-col min-h-[120px]"
             >
-              {/* 场景 Header (含拖拽手柄 .scene-header-handle) */}
-              <div className="px-3 py-2 bg-slate-100/90 border-b border-slate-200 flex items-center justify-between">
+              {/* 场景 Header */}
+              <div className="px-2.5 py-1.5 bg-slate-100/90 border-b border-slate-200 flex items-center justify-between">
                 <div className="flex items-center space-x-1.5">
-                  {/* 场景卡片拖拽手柄 */}
-                  <span className="scene-header-handle cursor-grab active:cursor-grabbing p-1 text-slate-400 hover:text-slate-600">
-                    <GripVertical className="w-3.5 h-3.5" />
-                  </span>
+                  {/* 编辑模式下才显示拖拽手柄 */}
+                  {isEditMode && (
+                    <span className="scene-header-handle cursor-grab active:cursor-grabbing p-0.5 text-slate-400 hover:text-slate-600" title="拖拽调整场景位置">
+                      <GripVertical className="w-3.5 h-3.5" />
+                    </span>
+                  )}
 
                   <span
                     className={`w-2.5 h-2.5 rounded-full ${
@@ -318,19 +315,19 @@ export const BoardView: React.FC<BoardViewProps> = ({
                         : 'bg-rose-500'
                     }`}
                   ></span>
-                  <h3 className="font-bold text-sm text-slate-800 truncate max-w-[150px]">
+                  <h3 className="font-bold text-xs text-slate-800 truncate max-w-[150px]">
                     {isAggregateBranch ? '厅堂 (各支行网点)' : dir.name}
                   </h3>
                 </div>
 
                 <div className="flex items-center space-x-1">
-                  <span className="text-xs bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-full">
+                  <span className="text-[11px] bg-slate-200 text-slate-700 font-bold px-1.5 py-0.2 rounded-full">
                     {assignedStaff.length}人
                   </span>
                   {isAggregateBranch && onSwitchToSpecificView && (
                     <button
                       onClick={() => onSwitchToSpecificView('branch')}
-                      className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-semibold hover:bg-indigo-200"
+                      className="text-[10px] bg-indigo-100 text-indigo-700 px-1 py-0.2 rounded font-semibold hover:bg-indigo-200"
                     >
                       明细&gt;
                     </button>
@@ -338,18 +335,10 @@ export const BoardView: React.FC<BoardViewProps> = ({
                 </div>
               </div>
 
-              {/* 队长信息 */}
-              {captain && !isAggregateBranch && (
-                <div className="px-3 py-1 bg-amber-50/80 text-[11px] text-amber-800 flex items-center border-b border-amber-100">
-                  <Award className="w-3.5 h-3.5 text-amber-600 mr-1 flex-shrink-0" />
-                  <span className="font-medium truncate">队长: {captain.name} ({captain.groupId})</span>
-                </div>
-              )}
-
-              {/* 场景人员 Drop 容器 (超紧凑流动网格) */}
+              {/* 场景人员 Drop 容器 */}
               <div
                 data-direction-id={dir.id}
-                className="drag-container p-2 flex-1 min-h-[80px] flex flex-wrap content-start gap-1.5 bg-slate-50/50"
+                className="drag-container p-2 flex-1 min-h-[60px] flex flex-wrap content-start gap-1 bg-slate-50/50"
               >
                 {assignedStaff.map((staff) => {
                   const canEdit = canEditStaff(authUser, staff);
@@ -367,24 +356,24 @@ export const BoardView: React.FC<BoardViewProps> = ({
                 })}
 
                 {assignedStaff.length === 0 && (
-                  <div className="w-full h-14 flex items-center justify-center border border-dashed border-slate-200 rounded-lg text-slate-400 text-xs">
-                    拖拽或点击指派人员至此
+                  <div className="w-full h-10 flex items-center justify-center border border-dashed border-slate-200 rounded text-slate-400 text-[11px]">
+                    {isEditMode ? '拖拽或点击指派' : '暂无人安排'}
                   </div>
                 )}
               </div>
 
               {/* 自拓方向专属面板 */}
               {dir.category === 'self_explore' && (
-                <div className="p-2 bg-purple-50/60 border-t border-purple-100">
-                  <div className="text-[11px] font-bold text-purple-900 flex items-center mb-1">
-                    <Compass className="w-3.5 h-3.5 mr-1 text-purple-600" />
+                <div className="p-1.5 bg-purple-50/60 border-t border-purple-100">
+                  <div className="text-[10px] font-bold text-purple-900 flex items-center mb-1">
+                    <Compass className="w-3 h-3 mr-1 text-purple-600" />
                     自拓搭档 & 规划区域
                   </div>
                   {schedule.selfExplorePairs.map((pair) => {
                     const pairStaff = staffList.filter((s) => pair.staffIds.includes(s.id));
                     return (
-                      <div key={pair.id} className="p-1.5 bg-white rounded border border-purple-200 text-xs mb-1">
-                        <div className="font-semibold text-purple-800 mb-1">
+                      <div key={pair.id} className="p-1 bg-white rounded border border-purple-200 text-[11px] mb-1">
+                        <div className="font-semibold text-purple-800 mb-0.5">
                           搭档: {pairStaff.map((s) => s.name).join(' + ') || '未选定'}
                         </div>
                         <div className="flex items-center space-x-1">
@@ -393,8 +382,8 @@ export const BoardView: React.FC<BoardViewProps> = ({
                             type="text"
                             value={pair.plannedArea}
                             onChange={(e) => onUpdateSelfExploreArea(pair.id, e.target.value)}
-                            placeholder="填写自定义规划区域..."
-                            className="w-full text-[11px] p-1 border border-slate-200 rounded focus:outline-none focus:border-purple-500"
+                            placeholder="填写规划区域..."
+                            className="w-full text-[10px] p-0.5 border border-slate-200 rounded focus:outline-none focus:border-purple-500"
                           />
                         </div>
                       </div>
