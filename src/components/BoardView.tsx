@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import Sortable from 'sortablejs';
 import { AuthUser, ColorHighlightMode, DailySchedule, Direction, Staff } from '../types';
 import { PersonCard, formatGroupMinimal } from './PersonCard';
 import { canEditStaff, filterStaffByAuthUser } from '../models/PermissionModel';
 import { sortStaffWithCaptain } from '../models/StaffModel';
-import { Compass, MapPin, Users, Search, Filter, GripVertical, CheckCircle2, Pin, Trash2, Clock, Sun, Sunrise, Sunset, Moon, ChevronDown, ChevronUp } from 'lucide-react';
+import { Compass, Users, Search, Filter, GripVertical, CheckCircle2, Pin, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface BoardViewProps {
   isDefaultBoardView: boolean;
@@ -21,6 +21,8 @@ interface BoardViewProps {
   onReorderDirections?: (newOrderedDirections: Direction[]) => void;
   onTogglePinDirection?: (directionId: string) => void;
   onDeleteDirection?: (directionId: string) => void;
+  // 时段切面
+  activeSlot: TimeSlotTab;
 }
 
 export type TimeSlotTab = 'all' | 'morning' | 'afternoon' | 'evening';
@@ -39,14 +41,14 @@ export const BoardView: React.FC<BoardViewProps> = ({
   onSwitchToSpecificView,
   onReorderDirections,
   onTogglePinDirection,
-  onDeleteDirection
+  onDeleteDirection,
+  activeSlot
 }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeSlot, setActiveSlot] = useState<TimeSlotTab>('all');
-  const [isUnassignedScenesCollapsed, setIsUnassignedScenesCollapsed] = useState<boolean>(true);
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const [isUnassignedScenesCollapsed, setIsUnassignedScenesCollapsed] = React.useState<boolean>(true);
 
   const isLeaderRole = authUser.role === 'leader' && !!authUser.groupId;
-  const [filterGroup, setFilterGroup] = useState<string>(isLeaderRole ? (authUser.groupId || 'all') : 'all');
+  const [filterGroup, setFilterGroup] = React.useState<string>(isLeaderRole ? (authUser.groupId || 'all') : 'all');
 
   const visibleStaffList = filterStaffByAuthUser(staffList, authUser);
 
@@ -166,9 +168,9 @@ export const BoardView: React.FC<BoardViewProps> = ({
 
   const allGroupNames = Array.from(new Set(staffList.map((s) => s.groupId))).sort();
 
-  // 分类分离：
+  // 分类隔离与严格底部分割：
   // 1. 合作方场景 (category === 'scene')
-  // 2. 特殊类别：必须按 自拓 -> 厅堂 -> 名单 排列
+  // 2. 特殊公共类别：严格按 自拓 -> 厅堂 -> 名单 排列
   const allScenes = directions.filter((d) => d.category === 'scene');
   
   const exploreDirs = directions.filter((d) => d.category === 'self_explore');
@@ -177,7 +179,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
   const vacationDirs = directions.filter((d) => d.category === 'vacation');
   const exitDirs = directions.filter((d) => d.category === 'pending_exit');
 
-  // 最后严格保持排序：自拓 -> 厅堂 -> 名单
   const specialCategories: Direction[] = [
     ...exploreDirs,
     ...(isDefaultBoardView ? (branches.length > 0 ? [branches[0]] : []) : branches),
@@ -189,7 +190,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
   let activeScenes = [...allScenes];
 
   if (!isEditMode) {
-    // 预览模式下对基础场景按【置顶(isPinned) > 已派人数降序】排序
     activeScenes.sort((a, b) => {
       if (a.isPinned && !b.isPinned) return -1;
       if (!a.isPinned && b.isPinned) return 1;
@@ -200,7 +200,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
     });
   }
 
-  // 区分有人的合作方场景 & 无人排班的合作方场景
   const populatedScenes = activeScenes.filter(scene => {
     if (isEditMode) return true;
     if (scene.isPinned) return true;
@@ -214,13 +213,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
     const count = getStaffForDirectionAndSlot(scene.id).length;
     return count === 0;
   });
-
-  const slotTabs: { id: TimeSlotTab; label: string; icon: React.ReactNode }[] = [
-    { id: 'all', label: '全天', icon: <Sun className="w-3 h-3 text-amber-500" /> },
-    { id: 'morning', label: '上午', icon: <Sunrise className="w-3 h-3 text-sky-500" /> },
-    { id: 'afternoon', label: '下午', icon: <Sunset className="w-3 h-3 text-amber-600" /> },
-    { id: 'evening', label: '晚上', icon: <Moon className="w-3 h-3 text-purple-500" /> },
-  ];
 
   const isAllAssigned = filteredUnassignedList.length === 0;
 
@@ -384,32 +376,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
 
   return (
     <div id="board-view-export" className="space-y-2.5">
-      
-      {/* 独立时段切面工具栏 */}
-      <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
-        <div className="flex items-center space-x-1 text-xs font-bold text-slate-700">
-          <Clock className="w-3.5 h-3.5 text-indigo-600" />
-          <span>时段切面:</span>
-        </div>
-
-        <div className="flex items-center space-x-1 bg-slate-100 p-0.5 rounded-lg">
-          {slotTabs.map((tab) => {
-            const isSelected = tab.id === activeSlot;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveSlot(tab.id)}
-                className={`px-2.5 py-0.5 rounded text-xs font-semibold flex items-center space-x-1 transition ${
-                  isSelected ? 'bg-white text-indigo-700 shadow-2xs font-bold' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                {tab.icon}
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
 
       <div className="flex flex-col lg:flex-row gap-3 items-start">
         

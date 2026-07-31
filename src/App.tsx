@@ -3,8 +3,8 @@ import { AuthUser, ColorHighlightMode, DailySchedule, Direction, DirectionCatego
 import { fetchCloudLatestData, loadDirections, loadSchedules, loadStaff, saveDirections, saveSchedules, saveStaff } from './utils/storage';
 import { getOrInheritSchedule } from './models/ScheduleModel';
 import { Header } from './components/Header';
-import { ViewTabs, ViewType } from './components/ViewTabs';
-import { BoardView } from './components/BoardView';
+import { ViewType } from './components/ViewTabs';
+import { BoardView, TimeSlotTab } from './components/BoardView';
 import { SceneView } from './components/SceneView';
 import { ListView } from './components/ListView';
 import { VacationView } from './components/VacationView';
@@ -26,8 +26,9 @@ export const App: React.FC = () => {
 
   const [colorMode, setColorMode] = useState<ColorHighlightMode>('none');
   const [activeView, setActiveView] = useState<ViewType>('board');
+  const [activeSlot, setActiveSlot] = useState<TimeSlotTab>('all');
   
-  // 修改：默认 isEditMode = true (默认即为编辑模式，可以直接拖拽排班)
+  // 默认 isEditMode = true (编辑模式)
   const [isEditMode, setIsEditMode] = useState<boolean>(true);
 
   const [staffList, setStaffList] = useState<Staff[]>([]);
@@ -298,11 +299,13 @@ export const App: React.FC = () => {
         onExportImage={handleExportImage}
         onOpenStaffModal={() => setIsStaffModalOpen(true)}
         onOpenDirectionModal={() => setIsDirectionModalOpen(true)}
+        activeView={activeView}
+        onViewChange={setActiveView}
+        activeSlot={activeSlot}
+        onSlotChange={setActiveSlot}
       />
 
-      <ViewTabs activeView={activeView} onViewChange={setActiveView} />
-
-      <main className="mt-1.5 pb-12">
+      <main className="mt-2 pb-12">
         {activeView === 'scene' ? (
           <SceneView
             schedule={currentSchedule}
@@ -345,6 +348,7 @@ export const App: React.FC = () => {
             onReorderDirections={handleReorderDirections}
             onTogglePinDirection={handleTogglePinDirection}
             onDeleteDirection={handleDeleteDirection}
+            activeSlot={activeSlot}
           />
         )}
       </main>
