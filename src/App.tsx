@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AuthUser, ColorHighlightMode, DailySchedule, Direction, DirectionCategory, PersonSlotSchedule, Staff } from './types';
+import { AuthUser, ColorHighlightMode, DailySchedule, Direction, DirectionCategory, ExecutionStatus, PersonSlotSchedule, Staff, TimeSlot } from './types';
 import { loadDirections, loadSchedules, loadStaff, saveDirections, saveSchedules, saveStaff } from './utils/storage';
 import { getOrInheritSchedule } from './models/ScheduleModel';
 import { Header } from './components/Header';
@@ -24,7 +24,6 @@ export const App: React.FC = () => {
     role: 'manager'
   });
 
-  // 显色高亮模式: none(无/默认干净), experience(经验显色), group(小组显色)
   const [colorMode, setColorMode] = useState<ColorHighlightMode>('none');
   const [activeView, setActiveView] = useState<ViewType>('board');
 
@@ -86,6 +85,20 @@ export const App: React.FC = () => {
     updateCurrentSchedule({
       ...currentSchedule,
       slotAssignments: updatedSlots
+    });
+  };
+
+  // 修改人员在某时段的履约执行状态 (on_track / off_track / pending)
+  const handleToggleExecutionStatus = (staffId: string, slot: TimeSlot, status: ExecutionStatus) => {
+    const key = `${staffId}_${slot}`;
+    const updatedRecords = {
+      ...(currentSchedule.executionRecords || {}),
+      [key]: status
+    };
+
+    updateCurrentSchedule({
+      ...currentSchedule,
+      executionRecords: updatedRecords
     });
   };
 
@@ -170,7 +183,6 @@ export const App: React.FC = () => {
     }
   };
 
-  // 图片导出 (动态命名体现实质)
   const handleExportImage = async () => {
     try {
       let elementId = 'board-view-export';
@@ -227,6 +239,7 @@ export const App: React.FC = () => {
             colorMode={colorMode}
             onMoveStaff={handleMoveStaff}
             onClickStaffCard={setSelectedStaff}
+            onToggleExecutionStatus={handleToggleExecutionStatus}
           />
         ) : activeView === 'scene' ? (
           <SceneView

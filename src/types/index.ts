@@ -4,6 +4,9 @@ export type ExperienceLevel = 'novice' | 'regular' | 'expert';
 // 显色高亮模式: none(无显色/默认干净), experience(按经验显色), group(按小组显色)
 export type ColorHighlightMode = 'none' | 'experience' | 'group';
 
+// 时段执行履约状态: 'on_track' (已到位/按计划执行), 'off_track' (偏离/未到位), 'pending' (待核实)
+export type ExecutionStatus = 'on_track' | 'off_track' | 'pending';
+
 // 作业方向分类
 export type DirectionCategory = 'scene' | 'branch' | 'list' | 'self_explore' | 'vacation' | 'pending_exit';
 
@@ -53,6 +56,7 @@ export interface DailySchedule {
   assignments: Record<string, string>;
   slotAssignments: Record<string, PersonSlotSchedule>;
   selfExplorePairs: SelfExplorePair[];
+  executionRecords?: Record<string, ExecutionStatus>; // 格式: "staffId_slot" -> ExecutionStatus
 }
 
 // 系统角色信息
