@@ -1,10 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Sortable from 'sortablejs';
 import { AuthUser, ColorHighlightMode, DailySchedule, Direction, Staff } from '../types';
 import { PersonCard } from './PersonCard';
 import { canEditStaff } from '../models/PermissionModel';
 import { sortStaffWithCaptain } from '../models/StaffModel';
-import { Award, Compass, MapPin, Users, HelpCircle, ArrowRightLeft } from 'lucide-react';
+import { Award, Compass, MapPin, Users, HelpCircle, Search, Filter } from 'lucide-react';
 
 interface BoardViewProps {
   isDefaultBoardView: boolean;
@@ -31,6 +31,10 @@ export const BoardView: React.FC<BoardViewProps> = ({
   onUpdateSelfExploreArea,
   onSwitchToSpecificView
 }) => {
+  // 待排班全员库内部搜索与过滤
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterGroup, setFilterGroup] = useState('all');
+
   useEffect(() => {
     const containers = document.querySelectorAll('.drag-container');
     const sortables: Sortable[] = [];
@@ -72,8 +76,17 @@ export const BoardView: React.FC<BoardViewProps> = ({
     };
   }, [directions, schedule, authUser, staffList]);
 
-  // 获取未安排/全员库人员 (未设置 directionId 或在未安排池)
-  const unassignedStaffList = staffList.filter((s) => !schedule.assignments[s.id]);
+  // 所有未排班人员
+  const unassignedRawList = staffList.filter((s) => !schedule.assignments[s.id]);
+
+  // 根据搜索与组过滤出的全员库人员
+  const filteredUnassignedList = unassignedRawList.filter((s) => {
+    const matchName = s.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchGroup = filterGroup === 'all' || s.groupId === filterGroup;
+    return matchName && matchGroup;
+  });
+
+  const allGroupNames = Array.from(new Set(staffList.map((s) => s.groupId))).sort();
 
   const getStaffForDirection = (dirId: string): Staff[] => {
     const assignedIds = Object.entries(schedule.assignments)
@@ -109,29 +122,54 @@ export const BoardView: React.FC<BoardViewProps> = ({
   return (
     <div id="board-view-export" className="flex flex-col lg:flex-row gap-3 items-start">
       
-      {/* 左侧/顶部【待排班全员人员库】面板 (从此拖拽/点击即可指派到场景) */}
-      <div className="w-full lg:w-64 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex-shrink-0">
+      {/* 左侧/顶部【待排班全员人员库】面板 (含搜姓名+选组过滤) */}
+      <div className="w-full lg:w-72 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex-shrink-0">
         <div className="px-3 py-2.5 bg-slate-800 text-white flex items-center justify-between">
           <div className="flex items-center space-x-1.5 font-bold text-xs">
             <Users className="w-4 h-4 text-indigo-400" />
             <span>待排班全员库</span>
           </div>
           <span className="text-[11px] bg-slate-700 text-slate-200 font-mono font-bold px-2 py-0.5 rounded-full">
-            {unassignedStaffList.length} 人待定
+            {unassignedRawList.length} 人待定
           </span>
         </div>
 
-        <div className="p-2 text-[10px] text-slate-500 bg-slate-50 border-b border-slate-200 flex items-center">
-          <HelpCircle className="w-3 h-3 text-slate-400 mr-1 flex-shrink-0" />
-          <span>点击员工芯片可一键指派；长按可拖拽</span>
+        {/* 搜姓名与过滤工具栏 */}
+        <div className="p-2 bg-slate-100/90 border-b border-slate-200 space-y-1.5">
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-2" />
+            <input
+              type="text"
+              placeholder="快速搜索人员姓名..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-7 pr-2 py-1 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-slate-500 font-medium flex items-center">
+              <Filter className="w-3 h-3 mr-1 text-slate-400" /> 组别筛选:
+            </span>
+            <select
+              value={filterGroup}
+              onChange={(e) => setFilterGroup(e.target.value)}
+              className="text-[11px] p-1 bg-white border border-slate-300 rounded-md focus:outline-none font-semibold text-slate-700"
+            >
+              <option value="all">全部组 ({staffList.length}人)</option>
+              {allGroupNames.map((g) => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* 待排班人员容器 */}
         <div
           data-direction-id=""
-          className="drag-container p-2 max-h-48 lg:max-h-[70vh] overflow-y-auto flex flex-wrap gap-1.5 bg-slate-50/50 min-h-[80px]"
+          className="drag-container p-2 max-h-56 lg:max-h-[72vh] overflow-y-auto flex flex-wrap content-start gap-1.5 bg-slate-50/50 min-h-[90px]"
         >
-          {unassignedStaffList.map((staff) => {
+          {filteredUnassignedList.map((staff) => {
             const canEdit = canEditStaff(authUser, staff);
             return (
               <PersonCard
@@ -145,9 +183,9 @@ export const BoardView: React.FC<BoardViewProps> = ({
             );
           })}
 
-          {unassignedStaffList.length === 0 && (
+          {filteredUnassignedList.length === 0 && (
             <div className="w-full h-16 flex items-center justify-center text-slate-400 text-xs text-center border border-dashed border-slate-200 rounded-lg">
-              全员已完成排班安排 🎉
+              {unassignedRawList.length === 0 ? '全员已完成排班安排 🎉' : '未搜到匹配人员'}
             </div>
           )}
         </div>
@@ -222,7 +260,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
                 </div>
               )}
 
-              {/* 场景人员 Drop 容器 (超紧凑横向流动网格排列 flex flex-wrap) */}
+              {/* 场景人员 Drop 容器 (超紧凑流动网格) */}
               <div
                 data-direction-id={dir.id}
                 className="drag-container p-2 flex-1 min-h-[80px] flex flex-wrap content-start gap-1.5 bg-slate-50/50"

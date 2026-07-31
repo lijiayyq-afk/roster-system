@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Eye, Download, Plus, Users, Shield, ArrowLeft, ArrowRight, Palette } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, User, Shield, Palette, Download, Building, Users, RefreshCw } from 'lucide-react';
 import { AuthUser, ColorHighlightMode } from '../types';
 
 interface HeaderProps {
@@ -14,6 +14,7 @@ interface HeaderProps {
   onExportImage: () => void;
   onOpenStaffModal: () => void;
   onOpenDirectionModal: () => void;
+  onResetData?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -27,170 +28,183 @@ export const Header: React.FC<HeaderProps> = ({
   onExportExcel,
   onExportImage,
   onOpenStaffModal,
-  onOpenDirectionModal
+  onOpenDirectionModal,
+  onResetData
 }) => {
-  const changeDateByDays = (days: number) => {
+  const handlePrevDay = () => {
     const d = new Date(currentDate);
-    d.setDate(d.getDate() + days);
+    d.setDate(d.getDate() - 1);
     onDateChange(d.toISOString().split('T')[0]);
   };
 
-  const handleNextColorMode = () => {
-    if (colorMode === 'none') onChangeColorMode('experience');
-    else if (colorMode === 'experience') onChangeColorMode('group');
-    else onChangeColorMode('none');
-  };
-
-  const getColorModeLabel = () => {
-    if (colorMode === 'experience') return '显色: 按经验';
-    if (colorMode === 'group') return '显色: 按小组';
-    return '显色: 无 (默认干净)';
+  const handleNextDay = () => {
+    const d = new Date(currentDate);
+    d.setDate(d.getDate() + 1);
+    onDateChange(d.toISOString().split('T')[0]);
   };
 
   return (
-    <header className="bg-gradient-to-r from-slate-800 via-indigo-900 to-slate-900 text-white p-3 md:p-4 rounded-xl shadow-lg mb-3">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-2.5">
-        
-        {/* LOGO & 移动端身份切换 */}
-        <div className="flex items-center justify-between w-full md:w-auto">
-          <div className="flex items-center space-x-2">
-            <div className="p-2 bg-indigo-600 rounded-lg shadow-md">
-              <Calendar className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-base md:text-xl font-bold tracking-tight">智能排班系统</h1>
-              <p className="text-[11px] text-indigo-200 hidden md:block">次日作业规划 & 移动端可视化协同</p>
-            </div>
+    <header className="bg-white rounded-xl shadow-xs border border-slate-200 p-3 mb-3 space-y-2">
+      {/* 顶栏第一层：标题 + 日期选择器 + 角色权限 */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
+        <div className="flex items-center space-x-2">
+          <div className="p-2 bg-indigo-600 rounded-lg text-white font-bold text-sm">
+            排班
           </div>
-
-          {/* 移动端快捷身份选择 */}
-          <div className="md:hidden">
-            <select
-              value={authUser.role === 'manager' ? 'manager' : authUser.groupId}
-              onChange={(e) => {
-                const val = e.target.value;
-                if (val === 'manager') {
-                  onAuthUserChange({ role: 'manager' });
-                } else {
-                  onAuthUserChange({ role: 'leader', groupId: val });
-                }
-              }}
-              className="bg-indigo-800 text-white text-xs px-2 py-1 rounded-lg border border-indigo-600 focus:outline-none"
-            >
-              <option value="manager">👑 经理 (全局)</option>
-              {groups.map(g => (
-                <option key={g} value={g}>👤 {g}组长</option>
-              ))}
-            </select>
+          <div>
+            <h1 className="text-base font-bold text-slate-800">智能时段人员排班系统</h1>
+            <p className="text-[10px] text-slate-400">移动端优先 · 场景视能 · 30天休假预警</p>
           </div>
         </div>
 
-        {/* 日期选择与快翻 */}
-        <div className="flex items-center bg-slate-900/70 px-2 py-1 rounded-xl border border-indigo-500/30 shadow-inner">
-          <button 
-            onClick={() => changeDateByDays(-1)} 
-            className="p-1 hover:bg-slate-700/80 rounded-lg text-slate-300 transition active:scale-95"
+        {/* 日期选择器 */}
+        <div className="flex items-center space-x-1.5 bg-slate-100 p-1 rounded-lg">
+          <button
+            onClick={handlePrevDay}
+            className="p-1 hover:bg-white rounded text-slate-600 transition"
             title="前一天"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ChevronLeft className="w-4 h-4" />
           </button>
-          
-          <input
-            type="date"
-            value={currentDate}
-            onChange={(e) => onDateChange(e.target.value)}
-            className="bg-transparent text-white font-semibold text-xs md:text-sm px-2 focus:outline-none cursor-pointer"
-          />
 
-          <button 
-            onClick={() => changeDateByDays(1)} 
-            className="p-1 hover:bg-slate-700/80 rounded-lg text-slate-300 transition active:scale-95"
+          <div className="flex items-center space-x-1 px-2 font-bold text-xs text-slate-700">
+            <Calendar className="w-3.5 h-3.5 text-indigo-600" />
+            <input
+              type="date"
+              value={currentDate}
+              onChange={(e) => onDateChange(e.target.value)}
+              className="bg-transparent border-none focus:outline-none text-xs font-bold text-slate-800 cursor-pointer"
+            />
+          </div>
+
+          <button
+            onClick={handleNextDay}
+            className="p-1 hover:bg-white rounded text-slate-600 transition"
             title="后一天"
           >
-            <ArrowRight className="w-4 h-4" />
+            <ChevronRight className="w-4 h-4" />
           </button>
         </div>
 
-        {/* 顶部多功能操作区 */}
-        <div className="flex flex-wrap items-center gap-1.5 w-full md:w-auto justify-end">
-          
-          {/* PC端身份选择 */}
-          <div className="hidden md:flex items-center space-x-1 bg-slate-900/60 px-2.5 py-1.5 rounded-lg border border-slate-700">
-            <Shield className="w-3.5 h-3.5 text-indigo-400" />
-            <span className="text-xs text-slate-300">角色:</span>
+        {/* 角色与组别权限切换器 */}
+        <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-lg text-xs font-semibold text-indigo-900">
+            <Shield className="w-3.5 h-3.5 text-indigo-600" />
+            <span>身份:</span>
             <select
-              value={authUser.role === 'manager' ? 'manager' : authUser.groupId}
+              value={authUser.role}
               onChange={(e) => {
-                const val = e.target.value;
-                if (val === 'manager') {
-                  onAuthUserChange({ role: 'manager' });
-                } else {
-                  onAuthUserChange({ role: 'leader', groupId: val });
-                }
+                const role = e.target.value as 'manager' | 'leader';
+                onAuthUserChange({
+                  role,
+                  groupId: role === 'leader' ? groups[0] || '20501组' : undefined
+                });
               }}
-              className="bg-transparent text-xs text-white font-semibold focus:outline-none cursor-pointer"
+              className="bg-transparent font-bold focus:outline-none cursor-pointer"
             >
-              <option value="manager" className="bg-slate-800">经理 (全员分配)</option>
-              {groups.map(g => (
-                <option key={g} value={g} className="bg-slate-800">{g}组长 (本组)</option>
-              ))}
+              <option value="manager">经理 (全局)</option>
+              <option value="leader">组长 (本组)</option>
             </select>
-          </div>
 
-          {/* 显色控制：无 / 经验 / 小组 */}
+            {authUser.role === 'leader' && (
+              <select
+                value={authUser.groupId}
+                onChange={(e) => onAuthUserChange({ ...authUser, groupId: e.target.value })}
+                className="bg-white border border-indigo-300 rounded px-1 text-xs font-bold text-indigo-700 focus:outline-none"
+              >
+                {groups.map((g) => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </select>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 顶栏第二层：三阶显色控制 + 场景/人员管理 + 导出 */}
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100 text-xs">
+        
+        {/* 三阶显色模式切换 */}
+        <div className="flex items-center space-x-1 bg-slate-100 p-0.5 rounded-lg">
+          <span className="text-[11px] text-slate-500 font-medium px-2 flex items-center">
+            <Palette className="w-3 h-3 mr-1 text-indigo-600" />
+            显色:
+          </span>
+          
           <button
-            onClick={handleNextColorMode}
-            className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition border active:scale-95 shadow-sm ${
-              colorMode === 'experience'
-                ? 'bg-amber-500/25 text-amber-300 border-amber-500/60'
-                : colorMode === 'group'
-                ? 'bg-indigo-500/25 text-indigo-300 border-indigo-500/60'
-                : 'bg-slate-800/80 text-slate-300 border-slate-700'
+            onClick={() => onChangeColorMode('none')}
+            className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${
+              colorMode === 'none' ? 'bg-white text-slate-800 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800'
             }`}
-            title="点击切换：无显色 -> 经验显色 -> 小组显色"
           >
-            <Palette className="w-3.5 h-3.5" />
-            <span>{getColorModeLabel()}</span>
+            无显色
           </button>
 
-          {/* 场景管理 (按要求从"新增方向/场景"重命名为"场景管理") */}
-          {authUser.role === 'manager' && (
-            <>
-              <button
-                onClick={onOpenDirectionModal}
-                className="px-2.5 py-1.5 bg-indigo-600/90 hover:bg-indigo-600 text-white rounded-lg text-xs font-semibold flex items-center space-x-1 transition shadow-sm"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>场景管理</span>
-              </button>
-              <button
-                onClick={onOpenStaffModal}
-                className="px-2.5 py-1.5 bg-blue-600/90 hover:bg-blue-600 text-white rounded-lg text-xs font-semibold flex items-center space-x-1 transition shadow-sm"
-              >
-                <Users className="w-3.5 h-3.5" />
-                <span>人员管理</span>
-              </button>
-            </>
+          <button
+            onClick={() => onChangeColorMode('experience')}
+            className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${
+              colorMode === 'experience' ? 'bg-white text-amber-900 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            经验
+          </button>
+
+          <button
+            onClick={() => onChangeColorMode('group')}
+            className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${
+              colorMode === 'group' ? 'bg-white text-indigo-900 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            小组
+          </button>
+        </div>
+
+        {/* 右侧业务工具按钮 */}
+        <div className="flex items-center space-x-1.5 flex-wrap">
+          {onResetData && (
+            <button
+              onClick={onResetData}
+              className="px-2.5 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg font-semibold flex items-center space-x-1 border border-blue-200 transition"
+              title="载入真实 148 人与 29 个场景数据"
+            >
+              <RefreshCw className="w-3 h-3 text-blue-600" />
+              <span>载入真实数据</span>
+            </button>
           )}
 
-          {/* 导出菜单 */}
+          <button
+            onClick={onOpenDirectionModal}
+            className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold flex items-center space-x-1 border border-slate-200 transition"
+          >
+            <Building className="w-3 h-3 text-slate-500" />
+            <span>场景管理</span>
+          </button>
+
+          <button
+            onClick={onOpenStaffModal}
+            className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold flex items-center space-x-1 border border-slate-200 transition"
+          >
+            <Users className="w-3 h-3 text-slate-500" />
+            <span>人员管理</span>
+          </button>
+
           <button
             onClick={onExportExcel}
-            className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1 transition shadow-sm"
+            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold flex items-center space-x-1 shadow-2xs transition"
           >
-            <Download className="w-3.5 h-3.5" />
-            <span>导出表格</span>
+            <Download className="w-3 h-3" />
+            <span>导出Excel</span>
           </button>
 
           <button
             onClick={onExportImage}
-            className="px-2.5 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1 transition shadow-sm"
+            className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold flex items-center space-x-1 shadow-2xs transition"
           >
-            <Download className="w-3.5 h-3.5" />
+            <Download className="w-3 h-3" />
             <span>导出图片</span>
           </button>
-
         </div>
+
       </div>
     </header>
   );

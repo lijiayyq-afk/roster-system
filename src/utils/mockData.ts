@@ -1,16 +1,50 @@
 import { Direction, Staff, DailySchedule } from '../types';
 
+// 真实场景列表 (29 个真实场景)
+const REAL_SCENE_NAMES = [
+  "商圈大促-苏州中心",
+  "永辉超市（高铁新城店）",
+  "永旺梦乐城（吴中）",
+  "宜家",
+  "昆山金鹰",
+  "永辉超市（吴江店）",
+  "方洲邻里中心",
+  "商圈大促-东吴龙湖",
+  "小石城",
+  "绿宝广场",
+  "乐活城慧之翼",
+  "商圈大促-大悦城",
+  "牛NEW（狮山龙湖店）",
+  "墅浦生活荟",
+  "盒马鲜生（盛博）",
+  "奥乐齐（丽丰广场店）",
+  "盒马鲜生（昆山万象汇）",
+  "盒马鲜生（盛泽）",
+  "牛小新烧肉（苏州中心店）",
+  "盒马鲜生（常熟天虹）",
+  "西城永捷",
+  "景城邻里中心",
+  "农乐园（吴江万象汇店）",
+  "牛NEW（苏州中心店）",
+  "环宇荟",
+  "牛NEW（东吴龙湖店）",
+  "建屋紫金东方",
+  "奥乐齐（世贸广场店）",
+  "盒马鲜生（印象城）"
+];
+
+// 生成方向/场景对象
 export const INITIAL_DIRECTIONS: Direction[] = [
-  // 合作方场景 (Scenes)
-  { id: 'dir-s1', name: '万达广场场景', category: 'scene', captainId: 'staff-1' },
-  { id: 'dir-s2', name: '九方购物中心场景', category: 'scene', captainId: null },
-  { id: 'dir-s3', name: '汽车城展厅场景', category: 'scene', captainId: 'staff-5' },
-  { id: 'dir-s4', name: '招商会中心场景', category: 'scene', captainId: null },
-  { id: 'dir-s5', name: '高新区数码港场景', category: 'scene', captainId: null },
-  { id: 'dir-s6', name: '金鹰天地场景', category: 'scene', captainId: null },
-  
+  // 29 个真实合作方场景
+  ...REAL_SCENE_NAMES.map((name, index) => ({
+    id: `dir-scene-${index + 1}`,
+    name,
+    category: 'scene' as const,
+    captainId: null
+  })),
+
   // 厅堂支行 (Branches)
-  { id: 'dir-b1', name: '昆山支行厅堂', category: 'branch', captainId: 'staff-2' },
+  { id: 'dir-b1', name: '昆山支行厅堂', category: 'branch', captainId: null },
   { id: 'dir-b2', name: '常熟支行厅堂', category: 'branch', captainId: null },
   { id: 'dir-b3', name: '太仓支行厅堂', category: 'branch', captainId: null },
   { id: 'dir-b4', name: '园区支行厅堂', category: 'branch', captainId: null },
@@ -20,46 +54,74 @@ export const INITIAL_DIRECTIONS: Direction[] = [
   { id: 'dir-list', name: '线上名单收件', category: 'list', captainId: null },
   { id: 'dir-explore', name: '自助寻找获客(自拓)', category: 'self_explore', captainId: null },
   { id: 'dir-vacation', name: '休假(不作业)', category: 'vacation', captainId: null },
-  { id: 'dir-exit', name: '待离职/已淘汰', category: 'pending_exit', captainId: null },
+  { id: 'dir-exit', name: '待离职/已淘汰', category: 'pending_exit', captainId: null }
 ];
 
-export const INITIAL_STAFF: Staff[] = [
-  { id: 'staff-1', name: '张强', groupId: '1组', region: '昆山', experience: 'expert', entryDate: '2024-03-15', notes: '沟通能力强，擅长场景获客大户' },
-  { id: 'staff-2', name: '李明', groupId: '1组', region: '昆山', experience: 'regular', entryDate: '2025-02-10', notes: '熟悉厅堂业务流程' },
-  { id: 'staff-3', name: '王芳', groupId: '1组', region: '常熟', experience: 'novice', entryDate: '2026-04-10', notes: '新手，需配合老带新安排' },
-  { id: 'staff-4', name: '赵伟', groupId: '1组', region: '太仓', experience: 'regular', entryDate: '2025-06-01' },
+// 真实人员数据 (来自 人员.txt 共 148 人)
+const RAW_STAFF_DATA: [string, string][] = [
+  ["20501", "姚辉"], ["20501", "强琳羚"], ["20501", "朱心茹"], ["20501", "陈纯"], ["20501", "李凯欣"],
+  ["20501", "李欣"], ["20501", "姜文超"], ["20501", "许益荣"], ["20501", "胡豪杰"], ["20501", "李慧茹"],
+  ["20501", "陈龙"], ["20501", "郭泽"], ["20501", "范远阔"], ["20501", "王珏"], ["20501", "李晨"],
+  ["20501", "吴梦"], ["20501", "陈伟"], ["20501", "乔宇杰"], ["20501", "胡文豪"], ["20501", "罗静"],
+  ["20501", "桑振宇"], ["20501", "王芳"], ["20501", "张宗瑞"], ["20501", "张俊"], ["20501", "朱梓轩"],
+  ["20501", "李梦妮"], ["20501", "栗珂欢"], ["20501", "蔺奇奇"], ["20501", "刘晓敬"], ["20501", "刘淑奇"],
+  ["20501", "夏寅兴"], ["20501", "褚海亮"], ["20501", "钱欣熠"],
   
-  { id: 'staff-5', name: '陈杰', groupId: '2组', region: '常熟', experience: 'expert', entryDate: '2023-11-20', notes: '汽车城场景负责人' },
-  { id: 'staff-6', name: '孙梅', groupId: '2组', region: '常熟', experience: 'regular', entryDate: '2025-08-15' },
-  { id: 'staff-7', name: '周涛', groupId: '2组', region: '工业园区', experience: 'novice', entryDate: '2026-06-01', notes: '试用期内表现优异' },
-
-  { id: 'staff-8', name: '吴磊', groupId: '3组', region: '太仓', experience: 'expert', entryDate: '2024-01-10' },
-  { id: 'staff-9', name: '郑敏', groupId: '3组', region: '姑苏区', experience: 'regular', entryDate: '2025-09-01' },
-  { id: 'staff-10', name: '刘洋', groupId: '3组', region: '工业园区', experience: 'novice', entryDate: '2026-05-15', notes: '协助线上名单收件' },
-  { id: 'staff-11', name: '徐峰', groupId: '3组', region: '姑苏区', isPendingExit: true, experience: 'regular', entryDate: '2024-08-01', notes: '离职手续办理中' }
+  ["20503", "赵宇"], ["20503", "李祠"], ["20503", "闰文阳"], ["20503", "肖焱"], ["20503", "王瑞祥"],
+  ["20503", "刘雨琼"], ["20503", "王雪"], ["20503", "丁金山"], ["20503", "史洁"], ["20503", "刘春艳"],
+  ["20503", "邓先斌"], ["20503", "汤文龙"], ["20503", "王明亮"], ["20503", "季慧"], ["20503", "董婷"],
+  ["20503", "张华"], ["20503", "包全颖"], ["20503", "张滢坤"], ["20503", "赵江力"], ["20503", "韩泽和"],
+  ["20503", "尚林俊"], ["20503", "程宇"], ["20503", "唐梓馨"], ["20503", "张晓涵"], ["20503", "曾梓潇"],
+  ["20503", "李君儒"], ["20503", "王研博"], ["20503", "郭李浩"], ["20503", "童文豪"], ["20503", "王学武"],
+  ["20503", "鲁维维"], ["20503", "戴家源"], ["20503", "王薛婷"], ["20503", "赵桢"], ["20503", "朱思雨"],
+  ["20503", "谢依成"], ["20503", "郭小燕"], ["20503", "黄思雨"], ["20503", "秦政安"], ["20503", "宋杰"],
+  ["20503", "张雨欣"], ["20503", "李林雨"], ["20503", "肖硕"], ["20503", "夏平宇"], ["20503", "何佳凝"],
+  ["20503", "杨萧"], ["20503", "朱成翔"],
+  
+  ["20504", "张俊"], ["20504", "郭小燕"], ["20504", "高俊豪"], ["20504", "赵梦璐"], ["20504", "顾位恒"],
+  ["20504", "马心宇"], ["20504", "宁佳佳"], ["20504", "罗洋"], ["20504", "尚湘君"], ["20504", "孙亿"],
+  ["20504", "郇子洋"], ["20504", "肖焱"], ["20504", "汤璨梅"], ["20504", "熊端玮"], ["20504", "房程浩"],
+  ["20504", "王康伟"], ["20504", "姚辉"], ["20504", "田也"], ["20504", "马豪杰"], ["20504", "罗静"],
+  ["20504", "黄高"], ["20504", "梁晓意"], ["20504", "吴赐"], ["20504", "卞芸佳"], ["20504", "罗嘉钰"],
+  ["20504", "殷丹丹"], ["20504", "付艳"], ["20504", "廉双成"], ["20504", "蔡子佳"],
+  
+  ["20505", "汪喜斌"], ["20505", "赵凯"],
+  
+  ["20511", "闫少卿"], ["20511", "叶清"], ["20511", "张立力"], ["20511", "潘婷"], ["20511", "梁智鹏"],
+  ["20511", "刘晓华"], ["20511", "王洁"], ["20511", "朱翱琛"], ["20511", "赵子杨"], ["20511", "张媛媛"],
+  ["20511", "孙轶"], ["20511", "尹玉萍"], ["20511", "刘丽丽（大）"], ["20511", "刘丽丽（小）"], ["20511", "叶宏亮"],
+  ["20511", "罗嘉钰"], ["20511", "廉双成"], ["20511", "常永春"], ["20511", "李乔"], ["20511", "孙世豪"],
+  ["20511", "殷丹丹"], ["20511", "庄永勤"], ["20511", "徐舟星"], ["20511", "孙青松"], ["20511", "杭秋凤"],
+  ["20511", "向定国"], ["20511", "黎艳芳"], ["20511", "王骆丹"], ["20511", "王子琼"], ["20511", "李赫"],
+  ["20511", "王贺怀"], ["20511", "高青梅"], ["20511", "魏立"], ["20511", "任子凌"], ["20511", "郝文杰"],
+  
+  ["20571", "宓源"], ["20571", "金春秀"]
 ];
+
+const REGIONS = ['昆山', '常熟', '太仓', '工业园区', '姑苏区', '吴江区', '相城区'];
+const EXPERIENCES = ['regular', 'expert', 'novice'] as const;
+
+export const INITIAL_STAFF: Staff[] = RAW_STAFF_DATA.map(([groupCode, name], index) => ({
+  id: `staff-${index + 1}`,
+  name,
+  groupId: `${groupCode}组`,
+  region: REGIONS[index % REGIONS.length],
+  experience: EXPERIENCES[index % EXPERIENCES.length],
+  entryDate: `2025-0${(index % 9) + 1}-15`,
+  notes: ''
+}));
 
 export const INITIAL_SCHEDULES: Record<string, DailySchedule> = {
   '2026-07-30': {
     date: '2026-07-30',
     assignments: {
-      'staff-1': 'dir-s1',
-      'staff-2': 'dir-b1',
-      'staff-3': 'dir-s1',
-      'staff-4': 'dir-list',
-      'staff-5': 'dir-s3',
-      'staff-6': 'dir-explore',
-      'staff-7': 'dir-explore',
-      'staff-8': 'dir-b3',
-      'staff-9': 'dir-vacation',
-      'staff-10': 'dir-list',
-      'staff-11': 'dir-exit',
+      'staff-1': 'dir-scene-1',
+      'staff-2': 'dir-scene-1',
+      'staff-35': 'dir-scene-2',
+      'staff-36': 'dir-scene-2',
+      'staff-82': 'dir-scene-5',
     },
-    slotAssignments: {
-      'staff-1': { morning: 'dir-s1', afternoon: 'dir-s1', evening: 'dir-s2' }
-    },
-    selfExplorePairs: [
-      { id: 'pair-101', staffIds: ['staff-6', 'staff-7'], plannedArea: '常熟高新区万达外围' }
-    ]
+    slotAssignments: {},
+    selfExplorePairs: []
   }
 };

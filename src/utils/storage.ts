@@ -1,51 +1,57 @@
-import { DailySchedule, Direction, Staff } from '../types';
-import { INITIAL_DIRECTIONS, INITIAL_SCHEDULES, INITIAL_STAFF } from './mockData';
+import { Direction, Staff, DailySchedule } from '../types';
+import { INITIAL_DIRECTIONS, INITIAL_STAFF, INITIAL_SCHEDULES } from './mockData';
 
-const STORAGE_KEYS = {
-  STAFF: 'roster_staff_v1',
-  DIRECTIONS: 'roster_directions_v1',
-  SCHEDULES: 'roster_schedules_v1',
-  AUTH: 'roster_auth_v1',
-};
+const STAFF_KEY = 'roster_staff_list_v2';
+const DIRECTIONS_KEY = 'roster_directions_list_v2';
+const SCHEDULES_KEY = 'roster_schedules_v2';
 
-export function loadStaff(): Staff[] {
-  try {
-    const data = localStorage.getItem(STORAGE_KEYS.STAFF);
-    return data ? JSON.parse(data) : INITIAL_STAFF;
-  } catch (e) {
-    console.error('加载人员数据失败', e);
+export const loadStaff = (): Staff[] => {
+  const data = localStorage.getItem(STAFF_KEY);
+  if (!data) {
+    saveStaff(INITIAL_STAFF);
     return INITIAL_STAFF;
   }
-}
-
-export function saveStaff(staff: Staff[]): void {
-  localStorage.setItem(STORAGE_KEYS.STAFF, JSON.stringify(staff));
-}
-
-export function loadDirections(): Direction[] {
   try {
-    const data = localStorage.getItem(STORAGE_KEYS.DIRECTIONS);
-    return data ? JSON.parse(data) : INITIAL_DIRECTIONS;
-  } catch (e) {
-    console.error('加载方向数据失败', e);
+    return JSON.parse(data);
+  } catch {
+    return INITIAL_STAFF;
+  }
+};
+
+export const saveStaff = (staffList: Staff[]): void => {
+  localStorage.setItem(STAFF_KEY, JSON.stringify(staffList));
+};
+
+export const loadDirections = (): Direction[] => {
+  const data = localStorage.getItem(DIRECTIONS_KEY);
+  if (!data) {
+    saveDirections(INITIAL_DIRECTIONS);
     return INITIAL_DIRECTIONS;
   }
-}
-
-export function saveDirections(directions: Direction[]): void {
-  localStorage.setItem(STORAGE_KEYS.DIRECTIONS, JSON.stringify(directions));
-}
-
-export function loadSchedules(): Record<string, DailySchedule> {
   try {
-    const data = localStorage.getItem(STORAGE_KEYS.SCHEDULES);
-    return data ? JSON.parse(data) : INITIAL_SCHEDULES;
-  } catch (e) {
-    console.error('加载排班历史失败', e);
+    return JSON.parse(data);
+  } catch {
+    return INITIAL_DIRECTIONS;
+  }
+};
+
+export const saveDirections = (directions: Direction[]): void => {
+  localStorage.setItem(DIRECTIONS_KEY, JSON.stringify(directions));
+};
+
+export const loadSchedules = (): Record<string, DailySchedule> => {
+  const data = localStorage.getItem(SCHEDULES_KEY);
+  if (!data) {
+    saveSchedules(INITIAL_SCHEDULES);
     return INITIAL_SCHEDULES;
   }
-}
+  try {
+    return JSON.parse(data);
+  } catch {
+    return INITIAL_SCHEDULES;
+  }
+};
 
-export function saveSchedules(schedules: Record<string, DailySchedule>): void {
-  localStorage.setItem(STORAGE_KEYS.SCHEDULES, JSON.stringify(schedules));
-}
+export const saveSchedules = (schedules: Record<string, DailySchedule>): void => {
+  localStorage.setItem(SCHEDULES_KEY, JSON.stringify(schedules));
+};
