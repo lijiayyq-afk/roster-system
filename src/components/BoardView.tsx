@@ -48,7 +48,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
 }) => {
   const [isUnassignedScenesCollapsed, setIsUnassignedScenesCollapsed] = useState<boolean>(true);
   
-  // 场景区与公共方向区的 3 阶段折叠模式: 'expanded' | 'card_folded' | 'section_folded'
+  // 场景区与公共方向区的 3 阶段折叠模式
   const [sceneFoldMode, setSceneFoldMode] = useState<FoldMode>('expanded');
   const [publicFoldMode, setPublicFoldMode] = useState<FoldMode>('expanded');
   
@@ -58,7 +58,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
   const visibleStaffList = filterStaffByAuthUser(staffList, authUser);
 
   useEffect(() => {
-    // 拖拽初始化
     const personContainers = document.querySelectorAll('.drag-container');
     const personSortables: Sortable[] = [];
 
@@ -74,7 +73,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
         onEnd: (evt) => {
           const { item, from, to, oldIndex } = evt;
           const staffId = item.getAttribute('data-id');
-          // targetDirId 为目标容器绑定的 data-direction-id
           const targetDirId = to.getAttribute('data-direction-id');
 
           if (from !== to && from && item) {
@@ -85,7 +83,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
             }
           }
 
-          // 关键修复：当拖回待排班全员库时 targetDirId === "" (非 null)，必须精准触发 onMoveStaff(staffId, "")
           if (staffId && targetDirId !== null) {
             const staff = staffList.find((s) => s.id === staffId);
             if (staff && canEditStaff(authUser, staff)) {
@@ -249,7 +246,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
   };
 
   const renderDirectionCard = (dir: Direction, parentSectionFoldMode: FoldMode) => {
-    // 关键修复：厅堂与其他卡片完全一致，直接按正常的 dir.id 获取拖拽与人员数据
     const assignedStaff = getStaffForDirectionAndSlot(dir.id);
     const isCardFolded = parentSectionFoldMode === 'card_folded' || collapsedDirIds.has(dir.id);
     const cleanTitle = getCleanDirectionTitle(dir);
@@ -344,7 +340,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
           </div>
         </div>
 
-        {/* 人员拖拽容器 (绑定 data-direction-id={dir.id}) */}
+        {/* 人员拖拽容器 */}
         {!isCardFolded && (
           <div
             data-direction-id={dir.id}
@@ -381,7 +377,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
 
       <div className="flex flex-col lg:flex-row gap-3 items-start">
         
-        {/* 左侧【待排班全员库】 (绑定 data-direction-id=""，拖入此处即放回待排库) */}
+        {/* 左侧【待排班全员库】 */}
         <div className={`w-full lg:w-72 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex-shrink-0 transition-all ${
           isAllAssigned ? 'py-0' : ''
         }`}>
@@ -462,6 +458,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
                 <span>场景 ({populatedScenes.length} 个)</span>
               </div>
 
+              {/* 场景按钮，支持统一在 3 种状态间循环 */}
               <button
                 onClick={cycleSceneFoldMode}
                 className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold flex items-center space-x-1 transition shadow-2xs"
@@ -485,20 +482,8 @@ export const BoardView: React.FC<BoardViewProps> = ({
               </button>
             </div>
 
-            {sceneFoldMode === 'section_folded' ? (
-              <div 
-                onClick={cycleSceneFoldMode}
-                className="bg-indigo-50/80 border border-indigo-200 rounded-xl p-2.5 text-xs font-bold text-indigo-900 flex items-center justify-between cursor-pointer hover:bg-indigo-100/80 transition"
-              >
-                <div className="flex items-center space-x-2">
-                  <span className="w-2.5 h-2.5 bg-blue-500 rounded-full"></span>
-                  <span>全量场景区已整行折叠 (共 {populatedScenes.length} 个场景已收起)</span>
-                </div>
-                <span className="text-[11px] text-indigo-600 font-semibold bg-white px-2 py-0.5 rounded-md border border-indigo-200 shadow-2xs">
-                  点击直接展开场景 ▾
-                </span>
-              </div>
-            ) : (
+            {/* 当整体折叠时，直接完全空出下方，无需显示提示行 */}
+            {sceneFoldMode !== 'section_folded' && (
               <div className="scene-grid-container grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 w-full">
                 {populatedScenes.map(dir => renderDirectionCard(dir, sceneFoldMode))}
               </div>
@@ -527,9 +512,10 @@ export const BoardView: React.FC<BoardViewProps> = ({
           </div>
 
           {/* 2. 常规公共作业方向区 (包含自拓、厅堂、名单、休假、待离职) */}
-          <div className="pt-3 border-t-2 border-dashed border-slate-300 space-y-2">
+          <div className="pt-2 border-t border-slate-200 space-y-2">
             
-            <div className="flex items-center justify-between bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700">
+            {/* 常规公共作业方向区统一配置漂亮 Header 工具栏 */}
+            <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs text-xs font-bold text-slate-700">
               <div className="flex items-center space-x-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
                 <span>常规公共作业方向 (自拓 / 厅堂 / 名单 / 休假 / 待离职)</span>
@@ -538,7 +524,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
               {/* 公共方向区 3 阶段折叠控制按钮 */}
               <button
                 onClick={cyclePublicFoldMode}
-                className="px-2.5 py-1 bg-white hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold flex items-center space-x-1 transition shadow-2xs"
+                className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold flex items-center space-x-1 transition shadow-2xs"
               >
                 {publicFoldMode === 'expanded' ? (
                   <>
@@ -553,26 +539,14 @@ export const BoardView: React.FC<BoardViewProps> = ({
                 ) : (
                   <>
                     <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>📖 全部展开方向区</span>
+                    <span>📖 方向区全部展开</span>
                   </>
                 )}
               </button>
             </div>
 
-            {publicFoldMode === 'section_folded' ? (
-              <div 
-                onClick={cyclePublicFoldMode}
-                className="bg-purple-50/80 border border-purple-200 rounded-xl p-2.5 text-xs font-bold text-purple-900 flex items-center justify-between cursor-pointer hover:bg-purple-100/80 transition"
-              >
-                <div className="flex items-center space-x-2">
-                  <span className="w-2.5 h-2.5 bg-purple-500 rounded-full"></span>
-                  <span>常规公共作业方向区已整行折叠 (共 {specialCategories.length} 个方向已收起)</span>
-                </div>
-                <span className="text-[11px] text-purple-700 font-semibold bg-white px-2 py-0.5 rounded-md border border-purple-200 shadow-2xs">
-                  点击直接展开方向区 ▾
-                </span>
-              </div>
-            ) : (
+            {/* 当整体折叠时，直接空出下方，可通过右侧按钮展开 */}
+            {publicFoldMode !== 'section_folded' && (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 w-full">
                 {specialCategories.map(dir => renderDirectionCard(dir, publicFoldMode))}
               </div>
