@@ -4,7 +4,7 @@ import { AuthUser, ColorHighlightMode, DailySchedule, Direction, Staff } from '.
 import { PersonCard, formatGroupMinimal } from './PersonCard';
 import { canEditStaff, filterStaffByAuthUser } from '../models/PermissionModel';
 import { sortStaffWithCaptain } from '../models/StaffModel';
-import { Compass, Users, Search, Filter, GripVertical, CheckCircle2, Pin, Trash2, ChevronDown, ChevronUp, Layers, FolderClosed, FolderOpen } from 'lucide-react';
+import { Compass, Users, GripVertical, CheckCircle2, Pin, Trash2, ChevronDown, ChevronUp, Layers, FolderClosed, FolderOpen } from 'lucide-react';
 
 interface BoardViewProps {
   isDefaultBoardView: boolean;
@@ -43,24 +43,12 @@ export const BoardView: React.FC<BoardViewProps> = ({
   onDeleteDirection,
   activeSlot
 }) => {
-  const [searchTerm, setSearchTerm] = useState('');
   const [isUnassignedScenesCollapsed, setIsUnassignedScenesCollapsed] = useState<boolean>(true);
 
-  // 记录每个卡片的折叠状态 (Set 集合，放死的 sceneId 表示该场景已折叠)
+  // 记录已被折叠的场景 ID 集合
   const [collapsedSceneIds, setCollapsedSceneIds] = useState<Set<string>>(new Set());
 
-  const isLeaderRole = authUser.role === 'leader' && !!authUser.groupId;
-  const [filterGroup, setFilterGroup] = useState<string>(isLeaderRole ? (authUser.groupId || 'all') : 'all');
-
   const visibleStaffList = filterStaffByAuthUser(staffList, authUser);
-
-  useEffect(() => {
-    if (isLeaderRole && authUser.groupId) {
-      setFilterGroup(authUser.groupId);
-    } else {
-      setFilterGroup('all');
-    }
-  }, [authUser]);
 
   useEffect(() => {
     if (!isEditMode) return;
@@ -136,7 +124,9 @@ export const BoardView: React.FC<BoardViewProps> = ({
     };
   }, [directions, schedule, authUser, staffList, onReorderDirections, isEditMode]);
 
-  const toggleSingleSceneFold = (sceneId: string) => {
+  // 单个场景折叠控制
+  const toggleSingleSceneFold = (sceneId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     setCollapsedSceneIds((prev) => {
       const next = new Set(prev);
       if (next.has(sceneId)) {
@@ -148,12 +138,11 @@ export const BoardView: React.FC<BoardViewProps> = ({
     });
   };
 
+  // 全量一键折叠 / 展开所有场景
   const toggleFoldAllScenes = () => {
     if (collapsedSceneIds.size === directions.length) {
-      // 当前全部折叠，则全部展开
       setCollapsedSceneIds(new Set());
     } else {
-      // 批量全部折叠
       setCollapsedSceneIds(new Set(directions.map((d) => d.id)));
     }
   };
@@ -179,22 +168,15 @@ export const BoardView: React.FC<BoardViewProps> = ({
     return sortStaffWithCaptain(dirStaff, dir?.captainId);
   };
 
-  const unassignedRawList = visibleStaffList.filter((s) => {
+  const unassignedList = visibleStaffList.filter((s) => {
     const currentDirId = getStaffDirectionForSlot(s.id);
     return !currentDirId && !s.isExited;
   });
 
-  const filteredUnassignedList = unassignedRawList.filter((s) => {
-    const matchName = s.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchGroup = filterGroup === 'all' || s.groupId === filterGroup;
-    return matchName && matchGroup;
-  });
+  const isLeaderRole = authUser.role === 'leader' && !!authUser.groupId;
 
-  const allGroupNames = Array.from(new Set(staffList.map((s) => s.groupId))).sort();
-
-  // 分类隔离：
+  // 场景分类：
   const allScenes = directions.filter((d) => d.category === 'scene');
-  
   const exploreDirs = directions.filter((d) => d.category === 'self_explore');
   const branches = directions.filter((d) => d.category === 'branch');
   const listDirs = directions.filter((d) => d.category === 'list');
@@ -236,7 +218,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
     return count === 0;
   });
 
-  const isAllAssigned = filteredUnassignedList.length === 0;
+  const isAllAssigned = unassignedList.length === 0;
 
   const renderDirectionCard = (dir: Direction) => {
     const isAggregateBranch = isDefaultBoardView && dir.category === 'branch';
@@ -259,13 +241,16 @@ export const BoardView: React.FC<BoardViewProps> = ({
         data-scene-id={dir.id}
         className={`bg-white rounded-xl border shadow-xs overflow-hidden flex flex-col transition-all ${
           dir.isPinned ? 'border-amber-300 ring-1 ring-amber-200' : 'border-slate-200/90'
-        } ${isCollapsed ? 'min-h-[36px]' : 'min-h-[110px]'}`}
+        }`}
       >
-        {/* Header */}
-        <div className="px-2.5 py-1 bg-slate-100/90 border-b border-slate-200 flex items-center justify-between">
+        {/* Header (支持点击整体标题栏或折叠按钮自由折叠) */}
+        <div 
+          onClick={(e) => toggleSingleSceneFold(dir.id, e)}
+          className="px-2.5 py-1 bg-slate-100/90 border-b border-slate-200 flex items-center justify-between cursor-pointer select-none"
+        >
           <div className="flex items-center space-x-1 min-w-0">
             {isEditMode && (
-              <span className="scene-header-handle cursor-grab active:cursor-grabbing p-0.5 text-slate-400 hover:text-slate-600">
+              <span className="scene-header-handle cursor-grab active:cursor-grabbing p-0.5 text-slate-400 hover:text-slate-600" onClick={(e) => e.stopPropagation()}>
                 <GripVertical className="w-3.5 h-3.5" />
               </span>
             )}
@@ -303,7 +288,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
             </span>
 
             {isEditMode && dir.category === 'scene' && (
-              <div className="flex items-center space-x-0.5">
+              <div className="flex items-center space-x-0.5" onClick={(e) => e.stopPropagation()}>
                 {onTogglePinDirection && (
                   <button
                     onClick={() => onTogglePinDirection(dir.id)}
@@ -332,25 +317,28 @@ export const BoardView: React.FC<BoardViewProps> = ({
 
             {isAggregateBranch && onSwitchToSpecificView && (
               <button
-                onClick={() => onSwitchToSpecificView('branch')}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSwitchToSpecificView('branch');
+                }}
                 className="text-[10px] bg-indigo-100 text-indigo-700 px-1 py-0.2 rounded font-semibold hover:bg-indigo-200"
               >
                 明细&gt;
               </button>
             )}
 
-            {/* 单个场景卡片折叠/展开按钮 */}
+            {/* 极度显著的折叠/展开按钮 */}
             <button
-              onClick={() => toggleSingleSceneFold(dir.id)}
-              className="p-0.5 text-slate-400 hover:text-slate-700 rounded hover:bg-slate-200 transition ml-0.5"
-              title={isCollapsed ? '展开此场景' : '折叠此场景(仅占一行)'}
+              onClick={(e) => toggleSingleSceneFold(dir.id, e)}
+              className="p-0.5 bg-slate-200 text-slate-700 hover:bg-indigo-100 hover:text-indigo-700 rounded transition ml-1 border border-slate-300"
+              title={isCollapsed ? '展开此场景' : '折叠此场景(只留一行)'}
             >
               {isCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
             </button>
           </div>
         </div>
 
-        {/* 人员容器 (折叠时隐藏) */}
+        {/* 人员容器 (折叠时收缩为 0 高度) */}
         {!isCollapsed && (
           <div
             data-direction-id={dir.id}
@@ -413,7 +401,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
 
       <div className="flex flex-col lg:flex-row gap-3 items-start">
         
-        {/* 左侧【待排班全员库】 */}
+        {/* 左侧【待排班全员库】 (手机端仅固定展示约两行高度，移除筛选框) */}
         <div className={`w-full lg:w-72 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex-shrink-0 transition-all ${
           isAllAssigned ? 'py-0' : ''
         }`}>
@@ -428,7 +416,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
             <span className={`text-[10px] font-mono font-bold px-2 py-0.2 rounded-full ${
               isAllAssigned ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-200'
             }`}>
-              {isAllAssigned ? '本组全员到位' : `${filteredUnassignedList.length} 人`}
+              {isAllAssigned ? '本组全员到位' : `${unassignedList.length} 人`}
             </span>
           </div>
 
@@ -443,83 +431,50 @@ export const BoardView: React.FC<BoardViewProps> = ({
               </span>
             </div>
           ) : (
-            <>
-              <div className="p-1 bg-slate-100/90 border-b border-slate-200 space-y-1">
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-1.5" />
-                  <input
-                    type="text"
-                    placeholder="搜索人员..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-7 pr-2 py-0.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none"
+            <div
+              data-direction-id=""
+              className="drag-container p-1.5 h-20 max-h-20 lg:h-auto lg:max-h-[65vh] overflow-y-auto flex flex-wrap content-start gap-1 bg-slate-50/50"
+            >
+              {unassignedList.map((staff) => {
+                const canEdit = canEditStaff(authUser, staff);
+                return (
+                  <PersonCard
+                    key={staff.id}
+                    staff={staff}
+                    canEdit={canEdit}
+                    colorMode={colorMode}
+                    slotSchedule={schedule.slotAssignments[staff.id]}
+                    onClickCard={onClickStaffCard}
                   />
-                </div>
-
-                {!isLeaderRole && (
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-slate-500 font-medium flex items-center">
-                      <Filter className="w-3 h-3 mr-1 text-slate-400" /> 筛选:
-                    </span>
-                    <select
-                      value={filterGroup}
-                      onChange={(e) => setFilterGroup(e.target.value)}
-                      className="p-0.5 bg-white border border-slate-300 rounded text-[11px] font-semibold"
-                    >
-                      <option value="all">全部组 ({unassignedRawList.length}人)</option>
-                      {allGroupNames.map((g) => (
-                        <option key={g} value={g}>{formatGroupMinimal(g)}组</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              <div
-                data-direction-id=""
-                className="drag-container p-1.5 max-h-52 lg:max-h-[65vh] overflow-y-auto flex flex-wrap content-start gap-1 bg-slate-50/50 min-h-[50px]"
-              >
-                {filteredUnassignedList.map((staff) => {
-                  const canEdit = canEditStaff(authUser, staff);
-                  return (
-                    <PersonCard
-                      key={staff.id}
-                      staff={staff}
-                      canEdit={canEdit}
-                      colorMode={colorMode}
-                      slotSchedule={schedule.slotAssignments[staff.id]}
-                      onClickCard={onClickStaffCard}
-                    />
-                  );
-                })}
-              </div>
-            </>
+                );
+              })}
+            </div>
           )}
         </div>
 
         {/* 右侧【场景区】与底部【分割公共类别区】 */}
         <div className="flex-1 space-y-3 w-full">
           
-          {/* 场景区总控栏：全量一键折叠 / 展开 */}
-          <div className="flex items-center justify-between bg-white px-3 py-1 rounded-xl border border-slate-200 shadow-2xs text-xs font-bold text-slate-700">
+          {/* 场景区总控栏：极其明显的 📂 一键折叠 / 展开所有场景 */}
+          <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs text-xs font-bold text-slate-700">
             <div className="flex items-center space-x-1.5">
-              <Layers className="w-3.5 h-3.5 text-blue-600" />
+              <Layers className="w-4 h-4 text-blue-600" />
               <span>合作方场景 ({populatedScenes.length} 个)</span>
             </div>
 
             <button
               onClick={toggleFoldAllScenes}
-              className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md border border-slate-300 text-[11px] font-semibold flex items-center space-x-1 transition"
+              className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold flex items-center space-x-1 transition shadow-2xs"
             >
               {collapsedSceneIds.size === directions.length ? (
                 <>
-                  <FolderOpen className="w-3 h-3 text-indigo-600" />
+                  <FolderOpen className="w-3.5 h-3.5 text-indigo-600" />
                   <span>📂 一键全部展开场景</span>
                 </>
               ) : (
                 <>
-                  <FolderClosed className="w-3 h-3 text-slate-600" />
-                  <span>📂 一键全部折叠场景 (只留一行)</span>
+                  <FolderClosed className="w-3.5 h-3.5 text-indigo-700" />
+                  <span>📂 一键全部折叠场景 (各占一行)</span>
                 </>
               )}
             </button>
