@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import Sortable from 'sortablejs';
-import { AuthUser, ColorHighlightMode, DailySchedule, Direction, DirectionCategory, Staff } from '../types';
+import { AuthUser, ColorHighlightMode, DailySchedule, Direction, Staff } from '../types';
 import { PersonCard, formatGroupMinimal } from './PersonCard';
 import { canEditStaff, filterStaffByAuthUser } from '../models/PermissionModel';
 import { sortStaffWithCaptain } from '../models/StaffModel';
-import { Compass, MapPin, Users, Search, Filter, GripVertical, CheckCircle2, Pin, Trash2, Edit2, Clock, Sun, Sunrise, Sunset, Moon, ChevronDown, ChevronUp } from 'lucide-react';
+import { Compass, MapPin, Users, Search, Filter, GripVertical, CheckCircle2, Pin, Trash2, Clock, Sun, Sunrise, Sunset, Moon, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface BoardViewProps {
   isDefaultBoardView: boolean;
@@ -42,11 +42,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
   onDeleteDirection
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // 独立的时段切面选择
   const [activeSlot, setActiveSlot] = useState<TimeSlotTab>('all');
-
-  // 无人排班场景折叠开关 (默认收起)
   const [isUnassignedScenesCollapsed, setIsUnassignedScenesCollapsed] = useState<boolean>(true);
 
   const isLeaderRole = authUser.role === 'leader' && !!authUser.groupId;
@@ -136,7 +132,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
     };
   }, [directions, schedule, authUser, staffList, onReorderDirections, isEditMode]);
 
-  // 根据时段切面获取人员在该时段的方向
   const getStaffDirectionForSlot = (staffId: string): string => {
     const mainDirId = schedule.assignments[staffId] || '';
     const slots = schedule.slotAssignments[staffId];
@@ -148,7 +143,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
     return mainDirId;
   };
 
-  // 获取特定方向在选定时段内的人员列表
   const getStaffForDirectionAndSlot = (dirId: string): Staff[] => {
     const dirStaff = visibleStaffList.filter((s) => {
       const assignedDirId = getStaffDirectionForSlot(s.id);
@@ -159,7 +153,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
     return sortStaffWithCaptain(dirStaff, dir?.captainId);
   };
 
-  // 未分配人员列表
   const unassignedRawList = visibleStaffList.filter((s) => {
     const currentDirId = getStaffDirectionForSlot(s.id);
     return !currentDirId && !s.isExited;
@@ -173,61 +166,52 @@ export const BoardView: React.FC<BoardViewProps> = ({
 
   const allGroupNames = Array.from(new Set(staffList.map((s) => s.groupId))).sort();
 
-  // 场景列表逻辑：
-  // 编辑中 (isEditMode === true)：不打乱顺序，保持方向库列表位置稳定！
-  // 确定完成 (isEditMode === false)：触发终极排序：置顶场景 (isPinned) > 按人数降序 > 聚合分类置底
-  let activeDirections = [...directions];
+  // 分类分离：
+  // 1. 合作方场景 (category === 'scene')
+  // 2. 特殊类别：必须按 自拓 -> 厅堂 -> 名单 排列
+  const allScenes = directions.filter((d) => d.category === 'scene');
+  
+  const exploreDirs = directions.filter((d) => d.category === 'self_explore');
+  const branches = directions.filter((d) => d.category === 'branch');
+  const listDirs = directions.filter((d) => d.category === 'list');
+  const vacationDirs = directions.filter((d) => d.category === 'vacation');
+  const exitDirs = directions.filter((d) => d.category === 'pending_exit');
 
-  if (isDefaultBoardView) {
-    const scenes = directions.filter((d) => d.category === 'scene');
-    const branches = directions.filter((d) => d.category === 'branch');
-    const listDirs = directions.filter((d) => d.category === 'list');
-    const exploreDirs = directions.filter((d) => d.category === 'self_explore');
-    const vacationDirs = directions.filter((d) => d.category === 'vacation');
-    const exitDirs = directions.filter((d) => d.category === 'pending_exit');
+  // 最后严格保持排序：自拓 -> 厅堂 -> 名单
+  const specialCategories: Direction[] = [
+    ...exploreDirs,
+    ...(isDefaultBoardView ? (branches.length > 0 ? [branches[0]] : []) : branches),
+    ...listDirs,
+    ...vacationDirs,
+    ...exitDirs
+  ];
 
-    let processedScenes = [...scenes];
+  let activeScenes = [...allScenes];
 
-    if (!isEditMode) {
-      // 确定完成预览时进行终极排序
-      processedScenes.sort((a, b) => {
-        // 置顶绝对优先
-        if (a.isPinned && !b.isPinned) return -1;
-        if (!a.isPinned && b.isPinned) return 1;
+  if (!isEditMode) {
+    // 预览模式下对基础场景按【置顶(isPinned) > 已派人数降序】排序
+    activeScenes.sort((a, b) => {
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
 
-        // 其次按人数从多到少降序
-        const countA = getStaffForDirectionAndSlot(a.id).length;
-        const countB = getStaffForDirectionAndSlot(b.id).length;
-        return countB - countA;
-      });
-    }
-
-    activeDirections = [
-      ...processedScenes,
-      ...(branches.length > 0 ? [branches[0]] : []),
-      ...listDirs,
-      ...exploreDirs,
-      ...vacationDirs,
-      ...exitDirs,
-    ];
+      const countA = getStaffForDirectionAndSlot(a.id).length;
+      const countB = getStaffForDirectionAndSlot(b.id).length;
+      return countB - countA;
+    });
   }
 
-  // 确定完成 (isEditMode === false) 时，对于人数为 0 的无人排班场景进行自动折叠隔离
-  const populatedDirections = activeDirections.filter(dir => {
-    if (isEditMode) return true; // 编辑过程中全量展示
-    const isAggregateBranch = isDefaultBoardView && dir.category === 'branch';
-    if (isAggregateBranch) return true;
-    if (dir.category !== 'scene') return true; // 厅堂/名单/自拓/休假等始终保持
-    if (dir.isPinned) return true; // 已置顶的场景始终保持
-
-    const count = getStaffForDirectionAndSlot(dir.id).length;
+  // 区分有人的合作方场景 & 无人排班的合作方场景
+  const populatedScenes = activeScenes.filter(scene => {
+    if (isEditMode) return true;
+    if (scene.isPinned) return true;
+    const count = getStaffForDirectionAndSlot(scene.id).length;
     return count > 0;
   });
 
-  const emptyScenes = activeDirections.filter(dir => {
+  const emptyScenes = activeScenes.filter(scene => {
     if (isEditMode) return false;
-    if (dir.category !== 'scene' || dir.isPinned) return false;
-    const count = getStaffForDirectionAndSlot(dir.id).length;
+    if (scene.isPinned) return false;
+    const count = getStaffForDirectionAndSlot(scene.id).length;
     return count === 0;
   });
 
@@ -262,7 +246,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
           dir.isPinned ? 'border-amber-300 ring-1 ring-amber-200' : 'border-slate-200/90'
         }`}
       >
-        {/* 场景 Header */}
+        {/* Header */}
         <div className="px-2.5 py-1 bg-slate-100/90 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center space-x-1">
             {isEditMode && (
@@ -288,10 +272,9 @@ export const BoardView: React.FC<BoardViewProps> = ({
             ></span>
 
             <h3 className="font-bold text-xs text-slate-800 truncate max-w-[130px]" title={dir.name}>
-              {isAggregateBranch ? '厅堂 (各支行网点)' : dir.name}
+              {isAggregateBranch ? '厅堂支行 (汇总)' : dir.name}
             </h3>
 
-            {/* 置顶星标 */}
             {dir.isPinned && (
               <span className="text-[10px] text-amber-600 bg-amber-100 font-bold px-1 rounded">
                 置顶
@@ -304,7 +287,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
               {assignedStaff.length}人
             </span>
 
-            {/* 置顶切换与编辑删除按钮 */}
             {isEditMode && dir.category === 'scene' && (
               <div className="flex items-center space-x-0.5">
                 {onTogglePinDirection && (
@@ -344,7 +326,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
           </div>
         </div>
 
-        {/* 场景人员 Drop 容器 */}
+        {/* 人员容器 */}
         <div
           data-direction-id={dir.id}
           className="drag-container p-1.5 flex-1 min-h-[50px] flex flex-wrap content-start gap-1 bg-slate-50/50"
@@ -371,12 +353,11 @@ export const BoardView: React.FC<BoardViewProps> = ({
           )}
         </div>
 
-        {/* 自拓方向专属 */}
         {dir.category === 'self_explore' && (
           <div className="p-1 bg-purple-50/60 border-t border-purple-100">
             <div className="text-[10px] font-bold text-purple-900 flex items-center mb-0.5">
               <Compass className="w-3 h-3 mr-1 text-purple-600" />
-              自拓区域
+              自拓区域规划
             </div>
             {schedule.selfExplorePairs.map((pair) => {
               const pairStaff = visibleStaffList.filter((s) => pair.staffIds.includes(s.id));
@@ -404,7 +385,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
   return (
     <div id="board-view-export" className="space-y-2.5">
       
-      {/* 独立的时段切面选择工具栏 */}
+      {/* 独立时段切面工具栏 */}
       <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
         <div className="flex items-center space-x-1 text-xs font-bold text-slate-700">
           <Clock className="w-3.5 h-3.5 text-indigo-600" />
@@ -432,12 +413,12 @@ export const BoardView: React.FC<BoardViewProps> = ({
 
       <div className="flex flex-col lg:flex-row gap-3 items-start">
         
-        {/* 左侧【待排班全员库】 (全排完缩缩为一行，高度自适应) */}
+        {/* 左侧【待排班全员库】 */}
         <div className={`w-full lg:w-72 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex-shrink-0 transition-all ${
           isAllAssigned ? 'py-0' : ''
         }`}>
           <div className="px-3 py-1.5 bg-slate-800 text-white flex items-center justify-between">
-            <div className="flex items-center space-x-1 font-bold text-xs">
+            <div className="flex items-center space-x-1.5 font-bold text-xs">
               <Users className="w-3.5 h-3.5 text-indigo-400" />
               <span>
                 {isLeaderRole ? `${formatGroupMinimal(authUser.groupId || '')}组 待排库` : '待排班全员库'}
@@ -516,22 +497,26 @@ export const BoardView: React.FC<BoardViewProps> = ({
           )}
         </div>
 
-        {/* 右侧【各场景/方向看板网格】 */}
-        <div className="flex-1 space-y-3 w-full">
-          {/* 有安排人/置顶的场景网格 */}
+        {/* 右侧【场景区】与底部【分割公共类别区】 */}
+        <div className="flex-1 space-y-4 w-full">
+          
+          {/* 1. 有人排班或置顶的合作方场景卡片区 */}
           <div className="scene-grid-container grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 w-full">
-            {populatedDirections.map(renderDirectionCard)}
+            {populatedScenes.map(renderDirectionCard)}
           </div>
 
-          {/* 确定完成 (预览) 时，无人排班场景合并折叠，减少干扰 */}
+          {/* 2. 无人排班场景折叠面板 (排在基础场景之后，特殊公共类别之前) */}
           {!isEditMode && emptyScenes.length > 0 && (
-            <div className="bg-slate-100 rounded-xl border border-slate-200 overflow-hidden">
+            <div className="bg-slate-100/90 rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
               <button
                 onClick={() => setIsUnassignedScenesCollapsed(!isUnassignedScenesCollapsed)}
-                className="w-full px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-200 flex items-center justify-between transition"
+                className="w-full px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200 flex items-center justify-between transition"
               >
-                <span>🌐 无人排班场景 ({emptyScenes.length} 个场景未安排人员)</span>
-                {isUnassignedScenesCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                <div className="flex items-center space-x-1.5">
+                  <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                  <span>无人排班合作方场景 ({emptyScenes.length} 个场景待安排人员)</span>
+                </div>
+                {isUnassignedScenesCollapsed ? <ChevronDown className="w-4 h-4 text-slate-500" /> : <ChevronUp className="w-4 h-4 text-slate-500" />}
               </button>
 
               {!isUnassignedScenesCollapsed && (
@@ -541,6 +526,19 @@ export const BoardView: React.FC<BoardViewProps> = ({
               )}
             </div>
           )}
+
+          {/* 3. 特殊公共类别分割线区 (严格按：自拓 -> 厅堂 -> 名单) */}
+          <div className="pt-2 border-t-2 border-dashed border-slate-300 space-y-2">
+            <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold px-1">
+              <span>常规公共作业方向 (自拓 / 厅堂 / 名单)</span>
+              <span className="text-[10px] text-slate-400 font-normal">固定分割显示在底部</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 w-full">
+              {specialCategories.map(renderDirectionCard)}
+            </div>
+          </div>
+
         </div>
 
       </div>
