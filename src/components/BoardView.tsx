@@ -458,7 +458,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
                 <span>场景 ({populatedScenes.length} 个)</span>
               </div>
 
-              {/* 场景按钮，支持统一在 3 种状态间循环 */}
               <button
                 onClick={cycleSceneFoldMode}
                 className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold flex items-center space-x-1 transition shadow-2xs"
@@ -482,7 +481,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
               </button>
             </div>
 
-            {/* 当整体折叠时，直接完全空出下方，无需显示提示行 */}
+            {/* 极简彻底干净：当整体折叠时直接隐藏下方内容，没有任何多余提示行 */}
             {sceneFoldMode !== 'section_folded' && (
               <div className="scene-grid-container grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 w-full">
                 {populatedScenes.map(dir => renderDirectionCard(dir, sceneFoldMode))}
@@ -511,17 +510,15 @@ export const BoardView: React.FC<BoardViewProps> = ({
             )}
           </div>
 
-          {/* 2. 常规公共作业方向区 (包含自拓、厅堂、名单、休假、待离职) */}
+          {/* 2. 常规公共作业方向区 */}
           <div className="pt-2 border-t border-slate-200 space-y-2">
             
-            {/* 常规公共作业方向区统一配置漂亮 Header 工具栏 */}
             <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs text-xs font-bold text-slate-700">
               <div className="flex items-center space-x-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
                 <span>常规公共作业方向 (自拓 / 厅堂 / 名单 / 休假 / 待离职)</span>
               </div>
 
-              {/* 公共方向区 3 阶段折叠控制按钮 */}
               <button
                 onClick={cyclePublicFoldMode}
                 className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold flex items-center space-x-1 transition shadow-2xs"
@@ -545,7 +542,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
               </button>
             </div>
 
-            {/* 当整体折叠时，直接空出下方，可通过右侧按钮展开 */}
+            {/* 极简彻底干净：当整体折叠时直接隐藏下方内容，没有任何多余提示行 */}
             {publicFoldMode !== 'section_folded' && (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 w-full">
                 {specialCategories.map(dir => renderDirectionCard(dir, publicFoldMode))}
