@@ -7,9 +7,9 @@ const STORAGE_KEYS = {
   SCHEDULES: 'roster_schedules_v5_cloud'
 };
 
-// 自动纠偏与清洗方向名称函数
+// 自动纠偏与清洗方向名称函数 (确保包含 融合进企 与 车贷)
 export const sanitizeDirections = (dirs: Direction[]): Direction[] => {
-  return dirs.map(d => {
+  let cleaned = dirs.map(d => {
     let name = d.name;
     if (d.category === 'self_explore' || d.id === 'dir-explore' || name.includes('自拓')) {
       name = '自拓';
@@ -17,6 +17,10 @@ export const sanitizeDirections = (dirs: Direction[]): Direction[] => {
       name = '名单';
     } else if (d.category === 'branch' || d.id === 'dir-b1' || name.includes('厅堂')) {
       name = '厅堂';
+    } else if (d.category === 'merge_enterprise' || d.id === 'dir-enterprise' || name.includes('进企')) {
+      name = '融合进企';
+    } else if (d.category === 'car_loan' || d.id === 'dir-car-loan' || name.includes('车贷')) {
+      name = '车贷';
     } else if (d.category === 'vacation' || d.id === 'dir-vacation' || name.includes('休假')) {
       name = '休假';
     } else if (d.category === 'pending_exit' || d.id === 'dir-exit' || name.includes('离职')) {
@@ -24,6 +28,18 @@ export const sanitizeDirections = (dirs: Direction[]): Direction[] => {
     }
     return { ...d, name };
   });
+
+  const hasEnterprise = cleaned.some(d => d.category === 'merge_enterprise' || d.id === 'dir-enterprise');
+  if (!hasEnterprise) {
+    cleaned.push({ id: 'dir-enterprise', name: '融合进企', category: 'merge_enterprise', captainId: null });
+  }
+
+  const hasCarLoan = cleaned.some(d => d.category === 'car_loan' || d.id === 'dir-car-loan');
+  if (!hasCarLoan) {
+    cleaned.push({ id: 'dir-car-loan', name: '车贷', category: 'car_loan', captainId: null });
+  }
+
+  return cleaned;
 };
 
 export const loadStaff = (): Staff[] => {

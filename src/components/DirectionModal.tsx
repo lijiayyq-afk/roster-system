@@ -34,6 +34,8 @@ export const DirectionModal: React.FC<DirectionModalProps> = ({
       case 'branch': return '厅堂';
       case 'list': return '名单';
       case 'self_explore': return '自拓';
+      case 'merge_enterprise': return '融合进企';
+      case 'car_loan': return '车贷';
       case 'vacation': return '休假';
       case 'pending_exit': return '待离职';
       default: return cat;
@@ -88,6 +90,8 @@ export const DirectionModal: React.FC<DirectionModalProps> = ({
                 <option value="branch">厅堂</option>
                 <option value="list">名单</option>
                 <option value="self_explore">自拓</option>
+                <option value="merge_enterprise">融合进企</option>
+                <option value="car_loan">车贷</option>
                 <option value="vacation">休假</option>
               </select>
             </div>
@@ -162,7 +166,7 @@ export const DirectionModal: React.FC<DirectionModalProps> = ({
                       className="p-1 text-slate-400 hover:text-rose-600 rounded"
                       title="软删除"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-3 h-3" />
                     </button>
                   )}
                 </div>

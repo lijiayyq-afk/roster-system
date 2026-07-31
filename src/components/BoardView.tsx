@@ -94,7 +94,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
       personSortables.push(s);
     });
 
-    // 2. 场景卡片拖拽排序 (严格仅通过 .scene-header-handle 手柄拖拽，绝不劫持内部人员卡片)
+    // 2. 场景卡片拖拽排序
     const sceneGrid = document.querySelector('.scene-grid-container');
     let sceneSortable: Sortable | null = null;
     if (sceneGrid && onReorderDirections && isEditMode) {
@@ -197,13 +197,18 @@ export const BoardView: React.FC<BoardViewProps> = ({
   const exploreDirs = directions.filter((d) => d.category === 'self_explore');
   const branches = directions.filter((d) => d.category === 'branch');
   const listDirs = directions.filter((d) => d.category === 'list');
+  const enterpriseDirs = directions.filter((d) => d.category === 'merge_enterprise');
+  const carLoanDirs = directions.filter((d) => d.category === 'car_loan');
   const vacationDirs = directions.filter((d) => d.category === 'vacation');
   const exitDirs = directions.filter((d) => d.category === 'pending_exit');
 
+  // 按顺序：自拓 -> 厅堂 -> 名单 -> 融合进企 -> 车贷 -> 休假 -> 待离职
   const specialCategories: Direction[] = [
     ...exploreDirs,
     ...branches,
     ...listDirs,
+    ...enterpriseDirs,
+    ...carLoanDirs,
     ...vacationDirs,
     ...exitDirs
   ];
@@ -241,6 +246,8 @@ export const BoardView: React.FC<BoardViewProps> = ({
     if (dir.category === 'branch') return '厅堂';
     if (dir.category === 'self_explore' || dir.id === 'dir-explore') return '自拓';
     if (dir.category === 'list' || dir.id === 'dir-list') return '名单';
+    if (dir.category === 'merge_enterprise' || dir.id === 'dir-enterprise') return '融合进企';
+    if (dir.category === 'car_loan' || dir.id === 'dir-car-loan') return '车贷';
     if (dir.category === 'vacation' || dir.id === 'dir-vacation') return '休假';
     if (dir.category === 'pending_exit' || dir.id === 'dir-exit') return '待离职';
     return dir.name;
@@ -281,6 +288,10 @@ export const BoardView: React.FC<BoardViewProps> = ({
                   ? 'bg-emerald-500'
                   : dir.category === 'self_explore'
                   ? 'bg-purple-500'
+                  : dir.category === 'merge_enterprise'
+                  ? 'bg-cyan-500'
+                  : dir.category === 'car_loan'
+                  ? 'bg-orange-500'
                   : dir.category === 'vacation'
                   ? 'bg-amber-500'
                   : 'bg-rose-500'
@@ -514,7 +525,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
             <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs text-xs font-bold text-slate-700">
               <div className="flex items-center space-x-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
-                <span>常规公共作业方向 (自拓 / 厅堂 / 名单 / 休假 / 待离职)</span>
+                <span>常规公共作业方向 (自拓 / 厅堂 / 名单 / 融合进企 / 车贷 / 休假 / 待离职)</span>
               </div>
 
               <button
