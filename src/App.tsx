@@ -225,6 +225,7 @@ export const App: React.FC = () => {
           />
         ) : (
           <BoardView
+            isDefaultBoardView={activeView === 'board'}
             schedule={currentSchedule}
             staffList={staffList}
             directions={getFilteredDirections()}
@@ -233,6 +234,7 @@ export const App: React.FC = () => {
             onMoveStaff={handleMoveStaff}
             onClickStaffCard={setSelectedStaff}
             onUpdateSelfExploreArea={handleUpdateSelfExploreArea}
+            onSwitchToSpecificView={(view) => setActiveView(view as ViewType)}
           />
         )}
       </main>
