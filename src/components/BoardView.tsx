@@ -51,7 +51,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
   useEffect(() => {
     if (!isEditMode) return;
 
-    // 1. 人员拖拽
     const personContainers = document.querySelectorAll('.drag-container');
     const personSortables: Sortable[] = [];
 
@@ -87,7 +86,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
       personSortables.push(s);
     });
 
-    // 2. 场景卡片拖拽排序
     const sceneGrid = document.querySelector('.scene-grid-container');
     let sceneSortable: Sortable | null = null;
     if (sceneGrid && onReorderDirections) {
@@ -122,6 +120,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
     };
   }, [directions, schedule, authUser, staffList, onReorderDirections, isEditMode]);
 
+  // 单卡片折叠
   const toggleSingleSceneFold = (sceneId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setCollapsedSceneIds((prev) => {
@@ -135,6 +134,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
     });
   };
 
+  // 全量一键折叠 / 展开所有场景 (原地双态切换)
   const toggleFoldAllScenes = () => {
     if (collapsedSceneIds.size === directions.length) {
       setCollapsedSceneIds(new Set());
@@ -171,7 +171,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
 
   const isLeaderRole = authUser.role === 'leader' && !!authUser.groupId;
 
-  // 场景分类：
+  // 分类与底部分割极简化：场景 -> (分割线) -> 自拓 -> 厅堂 -> 名单
   const allScenes = directions.filter((d) => d.category === 'scene');
   const exploreDirs = directions.filter((d) => d.category === 'self_explore');
   const branches = directions.filter((d) => d.category === 'branch');
@@ -268,7 +268,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
             ></span>
 
             <h3 className="font-bold text-xs text-slate-800 truncate max-w-[130px]" title={dir.name}>
-              {isAggregateBranch ? '厅堂支行 (汇总)' : dir.name}
+              {isAggregateBranch ? '厅堂' : dir.name}
             </h3>
 
             {dir.isPinned && (
@@ -311,7 +311,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
               </div>
             )}
 
-            {/* 折叠/展开按钮 */}
             <button
               onClick={(e) => toggleSingleSceneFold(dir.id, e)}
               className="p-0.5 bg-slate-200 text-slate-700 hover:bg-indigo-100 hover:text-indigo-700 rounded transition ml-1 border border-slate-300"
@@ -385,7 +384,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
 
       <div className="flex flex-col lg:flex-row gap-3 items-start">
         
-        {/* 左侧【待排班全员库】 (严格彻底清除搜索与筛选框，手机端精确定向展示 2 行微型卡片高度: h-16 max-h-16) */}
+        {/* 左侧【待排班全员库】 */}
         <div className={`w-full lg:w-72 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex-shrink-0 transition-all ${
           isAllAssigned ? 'py-0' : ''
         }`}>
@@ -439,11 +438,11 @@ export const BoardView: React.FC<BoardViewProps> = ({
         {/* 右侧【场景区】与底部【分割公共类别区】 */}
         <div className="flex-1 space-y-3 w-full">
           
-          {/* 场景区总控栏 */}
+          {/* 场景区总控栏：极简命名 `场景` + 双态一键折叠按钮 */}
           <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs text-xs font-bold text-slate-700">
             <div className="flex items-center space-x-1.5">
               <Layers className="w-4 h-4 text-blue-600" />
-              <span>合作方场景 ({populatedScenes.length} 个)</span>
+              <span>场景 ({populatedScenes.length} 个)</span>
             </div>
 
             <button
@@ -453,18 +452,18 @@ export const BoardView: React.FC<BoardViewProps> = ({
               {collapsedSceneIds.size === directions.length ? (
                 <>
                   <FolderOpen className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>📂 一键全部展开场景</span>
+                  <span>📂 整体展开所有场景</span>
                 </>
               ) : (
                 <>
                   <FolderClosed className="w-3.5 h-3.5 text-indigo-700" />
-                  <span>📂 一键全部折叠场景 (各占一行)</span>
+                  <span>📂 整体折叠所有场景 (各占一行)</span>
                 </>
               )}
             </button>
           </div>
 
-          {/* 1. 有人排班或置顶的合作方场景卡片区 */}
+          {/* 1. 有人排班或置顶的场景卡片区 */}
           <div className="scene-grid-container grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 w-full">
             {populatedScenes.map(renderDirectionCard)}
           </div>
@@ -478,7 +477,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
               >
                 <div className="flex items-center space-x-1.5">
                   <span className="w-2 h-2 rounded-full bg-slate-400"></span>
-                  <span>无人排班合作方场景 ({emptyScenes.length} 个场景待安排人员)</span>
+                  <span>无人排班场景 ({emptyScenes.length} 个场景待安排人员)</span>
                 </div>
                 {isUnassignedScenesCollapsed ? <ChevronDown className="w-4 h-4 text-slate-500" /> : <ChevronUp className="w-4 h-4 text-slate-500" />}
               </button>

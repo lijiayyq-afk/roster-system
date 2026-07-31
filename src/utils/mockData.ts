@@ -33,7 +33,7 @@ const REAL_SCENE_NAMES = [
   "盒马鲜生（印象城）"
 ];
 
-// 生成方向/场景对象 (纯净真实)
+// 生成方向/场景对象 (极简短命名)
 export const INITIAL_DIRECTIONS: Direction[] = [
   ...REAL_SCENE_NAMES.map((name, index) => ({
     id: `dir-scene-${index + 1}`,
@@ -43,16 +43,15 @@ export const INITIAL_DIRECTIONS: Direction[] = [
     isPinned: false
   })),
 
-  // 基础常用分类
-  { id: 'dir-b1', name: '厅堂支行网点', category: 'branch', captainId: null },
-  { id: 'dir-list', name: '线上名单收件', category: 'list', captainId: null },
-  { id: 'dir-explore', name: '自助寻找获客(自拓)', category: 'self_explore', captainId: null },
-  { id: 'dir-vacation', name: '休假(不作业)', category: 'vacation', captainId: null },
-  { id: 'dir-exit', name: '待离职/已淘汰', category: 'pending_exit', captainId: null }
+  // 基础分类极简命名
+  { id: 'dir-b1', name: '厅堂', category: 'branch', captainId: null },
+  { id: 'dir-list', name: '名单', category: 'list', captainId: null },
+  { id: 'dir-explore', name: '自拓', category: 'self_explore', captainId: null },
+  { id: 'dir-vacation', name: '休假', category: 'vacation', captainId: null },
+  { id: 'dir-exit', name: '待离职', category: 'pending_exit', captainId: null }
 ];
 
-// 真实人员数据 (来自 人员.txt 共 148 人)
-const RAW_STAFF_DATA: [string, string][] = [
+export const RAW_STAFF_DATA: [string, string][] = [
   ["20501", "姚辉"], ["20501", "强琳羚"], ["20501", "朱心茹"], ["20501", "陈纯"], ["20501", "李凯欣"],
   ["20501", "李欣"], ["20501", "姜文超"], ["20501", "许益荣"], ["20501", "胡豪杰"], ["20501", "李慧茹"],
   ["20501", "陈龙"], ["20501", "郭泽"], ["20501", "范远阔"], ["20501", "王珏"], ["20501", "李晨"],
@@ -92,7 +91,6 @@ const RAW_STAFF_DATA: [string, string][] = [
   ["20571", "宓源"], ["20571", "金春秀"]
 ];
 
-// 彻底清除地区与经验的 mock 数据，统一标记为 '待定'
 export const INITIAL_STAFF: Staff[] = RAW_STAFF_DATA.map(([groupCode, name], index) => ({
   id: `staff-${index + 1}`,
   name,
@@ -104,5 +102,4 @@ export const INITIAL_STAFF: Staff[] = RAW_STAFF_DATA.map(([groupCode, name], ind
   isExited: false
 }));
 
-// 初始纯净排班方案 (空排班，等待用户真实安排)
 export const INITIAL_SCHEDULES: Record<string, DailySchedule> = {};

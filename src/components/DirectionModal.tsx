@@ -19,8 +19,6 @@ export const DirectionModal: React.FC<DirectionModalProps> = ({
 }) => {
   const [name, setName] = useState('');
   const [category, setCategory] = useState<DirectionCategory>('scene');
-  
-  // 是否在弹窗内查看已删除的场景
   const [showDeletedOnly, setShowDeletedOnly] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -32,10 +30,10 @@ export const DirectionModal: React.FC<DirectionModalProps> = ({
 
   const getCategoryLabel = (cat: DirectionCategory) => {
     switch (cat) {
-      case 'scene': return '合作方场景';
-      case 'branch': return '厅堂支行';
-      case 'list': return '线上名单';
-      case 'self_explore': return '自拓获客';
+      case 'scene': return '场景';
+      case 'branch': return '厅堂';
+      case 'list': return '名单';
+      case 'self_explore': return '自拓';
       case 'vacation': return '休假';
       case 'pending_exit': return '待离职';
       default: return cat;
@@ -86,10 +84,10 @@ export const DirectionModal: React.FC<DirectionModalProps> = ({
                 onChange={(e) => setCategory(e.target.value as DirectionCategory)}
                 className="w-full p-1.5 bg-white border border-slate-300 rounded font-semibold focus:outline-none"
               >
-                <option value="scene">合作方场景</option>
-                <option value="branch">厅堂支行</option>
-                <option value="list">线上名单</option>
-                <option value="self_explore">自拓获客</option>
+                <option value="scene">场景</option>
+                <option value="branch">厅堂</option>
+                <option value="list">名单</option>
+                <option value="self_explore">自拓</option>
                 <option value="vacation">休假</option>
               </select>
             </div>

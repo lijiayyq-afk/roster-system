@@ -106,7 +106,7 @@ export const Header: React.FC<HeaderProps> = ({
             </select>
           </div>
 
-          {/* 3. 视图选择下拉框 (包含全量 6 大视图：含厅堂支行与自拓视角) */}
+          {/* 3. 视图选择下拉框 (极简描述) */}
           <div className="relative flex items-center bg-indigo-50/70 border border-indigo-200 rounded-lg px-1.5 py-1 hover:border-indigo-300 transition">
             <Eye className="w-3.5 h-3.5 text-indigo-700 mr-1 flex-shrink-0" />
             <select
@@ -115,10 +115,10 @@ export const Header: React.FC<HeaderProps> = ({
               className="text-xs bg-transparent font-bold text-indigo-900 focus:outline-none cursor-pointer pr-1"
             >
               <option value="board">📋 整体看板视图</option>
-              <option value="scene">🛍️ 合作方场景视图</option>
-              <option value="branch">🏛️ 厅堂支行视图</option>
-              <option value="list">📄 线上名单视图</option>
-              <option value="self_explore">📍 自拓获客视图</option>
+              <option value="scene">🛍️ 场景视图</option>
+              <option value="branch">🏛️ 厅堂视图</option>
+              <option value="list">📄 名单视图</option>
+              <option value="self_explore">📍 自拓视角</option>
               <option value="vacation">🏖️ 30天休假视图</option>
             </select>
           </div>
