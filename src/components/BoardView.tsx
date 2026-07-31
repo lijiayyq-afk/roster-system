@@ -243,7 +243,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
           dir.isPinned ? 'border-amber-300 ring-1 ring-amber-200' : 'border-slate-200/90'
         }`}
       >
-        {/* Header (支持点击整体标题栏或折叠按钮自由折叠) */}
+        {/* Header */}
         <div 
           onClick={(e) => toggleSingleSceneFold(dir.id, e)}
           className="px-2.5 py-1 bg-slate-100/90 border-b border-slate-200 flex items-center justify-between cursor-pointer select-none"
@@ -315,19 +315,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
               </div>
             )}
 
-            {isAggregateBranch && onSwitchToSpecificView && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSwitchToSpecificView('branch');
-                }}
-                className="text-[10px] bg-indigo-100 text-indigo-700 px-1 py-0.2 rounded font-semibold hover:bg-indigo-200"
-              >
-                明细&gt;
-              </button>
-            )}
-
-            {/* 极度显著的折叠/展开按钮 */}
+            {/* 折叠/展开按钮 */}
             <button
               onClick={(e) => toggleSingleSceneFold(dir.id, e)}
               className="p-0.5 bg-slate-200 text-slate-700 hover:bg-indigo-100 hover:text-indigo-700 rounded transition ml-1 border border-slate-300"
@@ -338,7 +326,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
           </div>
         </div>
 
-        {/* 人员容器 (折叠时收缩为 0 高度) */}
+        {/* 人员容器 */}
         {!isCollapsed && (
           <div
             data-direction-id={dir.id}
@@ -401,7 +389,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
 
       <div className="flex flex-col lg:flex-row gap-3 items-start">
         
-        {/* 左侧【待排班全员库】 (手机端仅固定展示约两行高度，移除筛选框) */}
+        {/* 左侧【待排班全员库】 */}
         <div className={`w-full lg:w-72 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex-shrink-0 transition-all ${
           isAllAssigned ? 'py-0' : ''
         }`}>
@@ -455,7 +443,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
         {/* 右侧【场景区】与底部【分割公共类别区】 */}
         <div className="flex-1 space-y-3 w-full">
           
-          {/* 场景区总控栏：极其明显的 📂 一键折叠 / 展开所有场景 */}
+          {/* 场景区总控栏 */}
           <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs text-xs font-bold text-slate-700">
             <div className="flex items-center space-x-1.5">
               <Layers className="w-4 h-4 text-blue-600" />
