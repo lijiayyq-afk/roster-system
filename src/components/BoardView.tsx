@@ -1,18 +1,18 @@
 import React, { useEffect } from 'react';
 import Sortable from 'sortablejs';
-import { AuthUser, DailySchedule, Direction, Staff } from '../types';
+import { AuthUser, ColorHighlightMode, DailySchedule, Direction, Staff } from '../types';
 import { PersonCard } from './PersonCard';
 import { canEditStaff } from '../models/PermissionModel';
 import { sortStaffWithCaptain } from '../models/StaffModel';
-import { Award, Compass, MapPin, Info } from 'lucide-react';
+import { Award, Compass, MapPin } from 'lucide-react';
 
 interface BoardViewProps {
-  isDefaultBoardView: boolean; // 是否处于默认看板视图
+  isDefaultBoardView: boolean;
   schedule: DailySchedule;
   staffList: Staff[];
   directions: Direction[];
   authUser: AuthUser;
-  showExperienceColor: boolean;
+  colorMode: ColorHighlightMode;
   onMoveStaff: (staffId: string, targetDirectionId: string) => void;
   onClickStaffCard: (staff: Staff) => void;
   onUpdateSelfExploreArea: (pairId: string, area: string) => void;
@@ -25,7 +25,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
   staffList,
   directions,
   authUser,
-  showExperienceColor,
+  colorMode,
   onMoveStaff,
   onClickStaffCard,
   onUpdateSelfExploreArea,
@@ -46,7 +46,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
           const staffId = item.getAttribute('data-id');
           const targetDirId = to.getAttribute('data-direction-id');
 
-          // 还原原生 DOM 改变，交由 React State 接管重绘
           if (from !== to && from && item) {
             if (oldIndex !== undefined && from.children[oldIndex]) {
               from.insertBefore(item, from.children[oldIndex]);
@@ -73,7 +72,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
     };
   }, [directions, schedule, authUser, staffList]);
 
-  // 根据方向 ID 获取分配人员（队长置顶）
   const getStaffForDirection = (dirId: string): Staff[] => {
     const assignedIds = Object.entries(schedule.assignments)
       .filter(([_, dId]) => dId === dirId)
@@ -85,11 +83,9 @@ export const BoardView: React.FC<BoardViewProps> = ({
     return sortStaffWithCaptain(dirStaff, dir?.captainId);
   };
 
-  // 如果是默认视图，对“厅堂支行”进行聚合处理（若用户未进入具体“厅堂视角”，厅堂作为一个整体聚合卡片展现首个支行或所有厅堂人员）
   let displayDirections = [...directions];
 
   if (isDefaultBoardView) {
-    // 默认视图逻辑：合作方场景按各个场景区分，厅堂/自拓/名单/休假/待离职按分类聚合
     const scenes = directions.filter((d) => d.category === 'scene');
     const branches = directions.filter((d) => d.category === 'branch');
     const listDirs = directions.filter((d) => d.category === 'list');
@@ -97,7 +93,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
     const vacationDirs = directions.filter((d) => d.category === 'vacation');
     const exitDirs = directions.filter((d) => d.category === 'pending_exit');
 
-    // 厅堂在默认视图中提供第1个支行代表（或聚合），提示去具体视图查看明细
     displayDirections = [
       ...scenes,
       ...(branches.length > 0 ? [branches[0]] : []),
@@ -111,7 +106,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
   return (
     <div id="board-view-export" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
       {displayDirections.map((dir) => {
-        // 如果是默认视图且为厅堂类，汇总所有厅堂的人员
         const isAggregateBranch = isDefaultBoardView && dir.category === 'branch';
         
         let assignedStaff: Staff[] = [];
@@ -132,7 +126,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
             key={dir.id}
             className="bg-white rounded-xl border border-slate-200/90 shadow-sm overflow-hidden flex flex-col"
           >
-            {/* Header of Column */}
             <div className="px-3 py-2.5 bg-slate-100/90 border-b border-slate-200 flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <span
@@ -171,7 +164,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
               </div>
             </div>
 
-            {/* 队长说明 (若有) */}
             {captain && !isAggregateBranch && (
               <div className="px-3 py-1 bg-amber-50/80 text-[11px] text-amber-800 flex items-center border-b border-amber-100">
                 <Award className="w-3.5 h-3.5 text-amber-600 mr-1 flex-shrink-0" />
@@ -179,7 +171,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
               </div>
             )}
 
-            {/* Drop Container */}
             <div
               data-direction-id={dir.id}
               className="drag-container p-2 flex-1 min-h-[90px] space-y-2 bg-slate-50/50"
@@ -192,7 +183,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
                     staff={staff}
                     isCaptain={dir.captainId === staff.id}
                     canEdit={canEdit}
-                    showExperienceColor={showExperienceColor}
+                    colorMode={colorMode}
                     slotSchedule={schedule.slotAssignments[staff.id]}
                     onClickCard={onClickStaffCard}
                   />
@@ -206,7 +197,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
               )}
             </div>
 
-            {/* 自拓方向专属作业区域分配面板 */}
             {dir.category === 'self_explore' && (
               <div className="p-2 bg-purple-50/60 border-t border-purple-100">
                 <div className="text-[11px] font-bold text-purple-900 flex items-center mb-1">

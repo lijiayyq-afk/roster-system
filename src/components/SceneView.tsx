@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AuthUser, DailySchedule, Direction, Staff } from '../types';
+import { AuthUser, ColorHighlightMode, DailySchedule, Direction, Staff } from '../types';
 import { PersonCard } from './PersonCard';
 import { canEditStaff } from '../models/PermissionModel';
 import { sortStaffWithCaptain } from '../models/StaffModel';
@@ -8,9 +8,9 @@ import { Building, Award, Users } from 'lucide-react';
 interface SceneViewProps {
   schedule: DailySchedule;
   staffList: Staff[];
-  directions: Direction[]; // 仅包含合作方场景分类 (category === 'scene')
+  directions: Direction[];
   authUser: AuthUser;
-  showExperienceColor: boolean;
+  colorMode: ColorHighlightMode;
   onMoveStaff: (staffId: string, targetDirectionId: string) => void;
   onClickStaffCard: (staff: Staff) => void;
 }
@@ -20,7 +20,7 @@ export const SceneView: React.FC<SceneViewProps> = ({
   staffList,
   directions,
   authUser,
-  showExperienceColor,
+  colorMode,
   onMoveStaff,
   onClickStaffCard
 }) => {
@@ -28,7 +28,6 @@ export const SceneView: React.FC<SceneViewProps> = ({
 
   const sceneDirections = directions.filter((d) => d.category === 'scene');
 
-  // 获取特定场景的人员
   const getStaffForScene = (sceneId: string): Staff[] => {
     const assignedIds = Object.entries(schedule.assignments)
       .filter(([_, dId]) => dId === sceneId)
@@ -40,14 +39,12 @@ export const SceneView: React.FC<SceneViewProps> = ({
     return sortStaffWithCaptain(dirStaff, dir?.captainId);
   };
 
-  // 待展示的场景列表
   const displayScenes = selectedSceneId === 'all'
     ? sceneDirections
     : sceneDirections.filter(d => d.id === selectedSceneId);
 
   return (
     <div id="scene-view-export" className="space-y-3">
-      {/* 顶部场景选择器：总视图 vs 单一场景视图 */}
       <div className="flex items-center space-x-2 bg-white p-2 rounded-xl border border-slate-200 shadow-sm overflow-x-auto no-scrollbar">
         <span className="text-xs font-bold text-slate-500 whitespace-nowrap px-1 flex items-center">
           <Building className="w-4 h-4 mr-1 text-blue-600" />
@@ -91,13 +88,11 @@ export const SceneView: React.FC<SceneViewProps> = ({
         })}
       </div>
 
-      {/* 场景卡片列表或单场景放大视图 */}
       <div className={`grid gap-3 ${selectedSceneId === 'all' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
         {displayScenes.map((scene) => {
           const assignedStaff = getStaffForScene(scene.id);
           const captain = staffList.find((s) => s.id === scene.captainId);
 
-          // 计算各小组人数分布
           const groupStats: Record<string, number> = {};
           assignedStaff.forEach(s => {
             groupStats[s.groupId] = (groupStats[s.groupId] || 0) + 1;
@@ -123,7 +118,6 @@ export const SceneView: React.FC<SceneViewProps> = ({
                 </div>
               </div>
 
-              {/* 队长与组别分布信息 */}
               <div className="px-3.5 py-2 bg-blue-50/80 border-b border-blue-100 flex flex-wrap items-center justify-between text-xs gap-1">
                 <div className="flex items-center text-blue-900 font-semibold">
                   <Award className="w-3.5 h-3.5 text-amber-500 mr-1" />
@@ -142,7 +136,6 @@ export const SceneView: React.FC<SceneViewProps> = ({
                 </div>
               </div>
 
-              {/* 人员展示容器 */}
               <div className="p-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 bg-slate-50/50">
                 {assignedStaff.map((staff) => {
                   const canEdit = canEditStaff(authUser, staff);
@@ -152,7 +145,7 @@ export const SceneView: React.FC<SceneViewProps> = ({
                       staff={staff}
                       isCaptain={scene.captainId === staff.id}
                       canEdit={canEdit}
-                      showExperienceColor={showExperienceColor}
+                      colorMode={colorMode}
                       slotSchedule={schedule.slotAssignments[staff.id]}
                       onClickCard={onClickStaffCard}
                     />

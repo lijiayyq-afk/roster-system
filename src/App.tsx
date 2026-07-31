@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AuthUser, DailySchedule, Direction, DirectionCategory, PersonSlotSchedule, Staff } from './types';
+import { AuthUser, ColorHighlightMode, DailySchedule, Direction, DirectionCategory, PersonSlotSchedule, Staff } from './types';
 import { loadDirections, loadSchedules, loadStaff, saveDirections, saveSchedules, saveStaff } from './utils/storage';
 import { getOrInheritSchedule } from './models/ScheduleModel';
 import { Header } from './components/Header';
@@ -24,7 +24,8 @@ export const App: React.FC = () => {
     role: 'manager'
   });
 
-  const [showExperienceColor, setShowExperienceColor] = useState<boolean>(false);
+  // 显色高亮模式: none(无/默认干净), experience(经验显色), group(小组显色)
+  const [colorMode, setColorMode] = useState<ColorHighlightMode>('none');
   const [activeView, setActiveView] = useState<ViewType>('board');
 
   const [staffList, setStaffList] = useState<Staff[]>([]);
@@ -169,25 +170,30 @@ export const App: React.FC = () => {
     }
   };
 
+  // 图片导出 (动态命名体现实质)
   const handleExportImage = async () => {
     try {
       let elementId = 'board-view-export';
-      let title = '整体视图';
+      let viewName = '整体看板视图';
 
       if (activeView === 'group') {
         elementId = 'group-view-export';
-        title = '小组视图';
+        viewName = '小组视图';
       } else if (activeView === 'vacation') {
         elementId = 'vacation-view-export';
-        title = '休假视图30天';
+        viewName = '最近30天休假视图';
       } else if (activeView === 'scene') {
         elementId = 'scene-view-export';
-        title = '场景视图';
+        viewName = '合作方场景视图';
       } else if (activeView === 'branch') {
-        title = '厅堂支行视图';
+        viewName = '厅堂支行视图';
+      } else if (activeView === 'list') {
+        viewName = '线上名单收件视图';
+      } else if (activeView === 'self_explore') {
+        viewName = '自拓获客视图';
       }
 
-      await exportElementToImage(elementId, `排班安排_${title}_${currentDate}`);
+      await exportElementToImage(elementId, currentDate, viewName);
     } catch (e: any) {
       alert(`导出图片失败: ${e.message || e}`);
     }
@@ -200,8 +206,8 @@ export const App: React.FC = () => {
         onDateChange={setCurrentDate}
         authUser={authUser}
         onAuthUserChange={setAuthUser}
-        showExperienceColor={showExperienceColor}
-        onToggleExperienceColor={() => setShowExperienceColor(!showExperienceColor)}
+        colorMode={colorMode}
+        onChangeColorMode={setColorMode}
         groups={GROUPS}
         onExportExcel={() => exportScheduleToExcel(currentSchedule, staffList, directions)}
         onExportImage={handleExportImage}
@@ -218,7 +224,7 @@ export const App: React.FC = () => {
             staffList={staffList}
             directions={directions}
             authUser={authUser}
-            showExperienceColor={showExperienceColor}
+            colorMode={colorMode}
             onMoveStaff={handleMoveStaff}
             onClickStaffCard={setSelectedStaff}
           />
@@ -228,7 +234,7 @@ export const App: React.FC = () => {
             staffList={staffList}
             directions={directions}
             authUser={authUser}
-            showExperienceColor={showExperienceColor}
+            colorMode={colorMode}
             onMoveStaff={handleMoveStaff}
             onClickStaffCard={setSelectedStaff}
           />
@@ -246,7 +252,7 @@ export const App: React.FC = () => {
             staffList={staffList}
             directions={getFilteredDirections()}
             authUser={authUser}
-            showExperienceColor={showExperienceColor}
+            colorMode={colorMode}
             onMoveStaff={handleMoveStaff}
             onClickStaffCard={setSelectedStaff}
             onUpdateSelfExploreArea={handleUpdateSelfExploreArea}

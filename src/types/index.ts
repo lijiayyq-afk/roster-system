@@ -1,6 +1,9 @@
 // 经验级别
 export type ExperienceLevel = 'novice' | 'regular' | 'expert';
 
+// 显色高亮模式: none(无显色/默认干净), experience(按经验显色), group(按小组显色)
+export type ColorHighlightMode = 'none' | 'experience' | 'group';
+
 // 作业方向分类
 export type DirectionCategory = 'scene' | 'branch' | 'list' | 'self_explore' | 'vacation' | 'pending_exit';
 
@@ -47,16 +50,13 @@ export interface SelfExplorePair {
 // 某日排班记录
 export interface DailySchedule {
   date: string;               // 日期 YYYY-MM-DD
-  // 人员到主方向的映射 (staffId -> directionId)
   assignments: Record<string, string>;
-  // 精细时段分配 (staffId -> PersonSlotSchedule)
   slotAssignments: Record<string, PersonSlotSchedule>;
-  // 自拓组合
   selfExplorePairs: SelfExplorePair[];
 }
 
 // 系统角色信息
 export interface AuthUser {
   role: UserRole;
-  groupId?: string; // 组长绑定的组ID
+  groupId?: string;
 }

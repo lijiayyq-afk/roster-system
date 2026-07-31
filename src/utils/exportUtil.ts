@@ -3,7 +3,18 @@ import html2canvas from 'html2canvas';
 import { DailySchedule, Direction, Staff } from '../types';
 
 /**
- * 导出当前排班表为 Excel 文件
+ * 格式化日期为 YYYY年MM月DD日
+ */
+function formatChineseDate(dateStr: string): string {
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    return `${parts[0]}年${parts[1]}月${parts[2]}日`;
+  }
+  return dateStr;
+}
+
+/**
+ * 导出当前排班表为 Excel 文件 (命名体现实质)
  */
 export function exportScheduleToExcel(
   schedule: DailySchedule,
@@ -36,16 +47,17 @@ export function exportScheduleToExcel(
 
   const worksheet = XLSX.utils.json_to_sheet(rows);
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, '明日排班表');
+  XLSX.utils.book_append_sheet(workbook, worksheet, '排班表');
 
-  const fileName = `排班安排表_${schedule.date}.xlsx`;
+  const cDate = formatChineseDate(schedule.date);
+  const fileName = `${cDate}_团队人员排班结果明细表.xlsx`;
   XLSX.writeFile(workbook, fileName);
 }
 
 /**
- * 截取 DOM 元素导出为 PNG 图片
+ * 截取 DOM 元素导出为 PNG 图片 (命名规范：YYYY年MM月DD日_排班结果_XXX视图)
  */
-export async function exportElementToImage(elementId: string, filename: string) {
+export async function exportElementToImage(elementId: string, dateStr: string, viewName: string) {
   const element = document.getElementById(elementId);
   if (!element) {
     throw new Error('未找到要导出的视图元素');
@@ -59,7 +71,8 @@ export async function exportElementToImage(elementId: string, filename: string) 
 
   const dataUrl = canvas.toDataURL('image/png');
   const link = document.createElement('a');
-  link.download = `${filename}.png`;
+  const cDate = formatChineseDate(dateStr);
+  link.download = `${cDate}_排班结果_${viewName}.png`;
   link.href = dataUrl;
   link.click();
 }
