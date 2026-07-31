@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, UserPlus, Trash2, UserMinus, UserCheck } from 'lucide-react';
+import { X, UserPlus, Trash2, UserMinus, UserCheck, Edit2, Check, RotateCcw } from 'lucide-react';
 import { ExperienceLevel, Staff } from '../types';
 import { formatGroupMinimal } from './PersonCard';
 
@@ -10,6 +10,7 @@ interface StaffModalProps {
   onClose: () => void;
   onAddStaff: (staff: Omit<Staff, 'id'>) => void;
   onDeleteStaff: (staffId: string) => void;
+  onUpdateStaff?: (staff: Staff) => void;
   onToggleExitStaff?: (staffId: string, isExited: boolean) => void;
 }
 
@@ -20,6 +21,7 @@ export const StaffModal: React.FC<StaffModalProps> = ({
   onClose,
   onAddStaff,
   onDeleteStaff,
+  onUpdateStaff,
   onToggleExitStaff
 }) => {
   const todayStr = new Date().toISOString().split('T')[0];
@@ -27,12 +29,13 @@ export const StaffModal: React.FC<StaffModalProps> = ({
   const [name, setName] = useState('');
   const [groupId, setGroupId] = useState(groups[0] || '20501组');
   const [region, setRegion] = useState(regions[0] || '待定');
-  
-  // 新增人员默认是新手 (novice)，日期是从新增的时候开始 (todayStr)
   const [experience, setExperience] = useState<ExperienceLevel>('novice');
   const [entryDate, setEntryDate] = useState(todayStr);
 
   const [showExitedOnly, setShowExitedOnly] = useState(false);
+
+  // 当前正在编辑的人员对象
+  const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,9 +51,19 @@ export const StaffModal: React.FC<StaffModalProps> = ({
     });
 
     setName('');
-    // 恢复默认 novice
     setExperience('novice');
     setEntryDate(todayStr);
+  };
+
+  const handleStartEdit = (staff: Staff) => {
+    setEditingStaff({ ...staff });
+  };
+
+  const handleSaveEdit = () => {
+    if (editingStaff && onUpdateStaff) {
+      onUpdateStaff(editingStaff);
+      setEditingStaff(null);
+    }
   };
 
   const displayList = staffList.filter(s => showExitedOnly ? s.isExited : !s.isExited);
@@ -70,11 +83,11 @@ export const StaffModal: React.FC<StaffModalProps> = ({
           </button>
         </div>
 
-        {/* 添加新人员表单 */}
+        {/* 新增人员表单 */}
         <form onSubmit={handleSubmit} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
           <div className="text-xs font-bold text-slate-700 flex items-center">
             <UserPlus className="w-3.5 h-3.5 mr-1 text-indigo-600" />
-            新增业务代表成员 (默认等级为新手，入职日为今天)
+            新增业务代表成员
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
@@ -134,11 +147,11 @@ export const StaffModal: React.FC<StaffModalProps> = ({
             type="submit"
             className="w-full py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition shadow-xs"
           >
-            确认添加人员 (自动登记入职日为今天)
+            确认添加人员
           </button>
         </form>
 
-        {/* 人员名册列表 */}
+        {/* 在职/离职人员名册 */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-700">
@@ -158,59 +171,153 @@ export const StaffModal: React.FC<StaffModalProps> = ({
             </button>
           </div>
 
-          <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
-            {displayList.map((staff) => (
-              <div
-                key={staff.id}
-                className="p-2 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between text-xs"
-              >
-                <div className="flex items-center space-x-2">
-                  <span className="font-bold text-slate-800">{staff.name}</span>
-                  <span className="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.2 rounded">
-                    {formatGroupMinimal(staff.groupId)}组 {staff.region !== '待定' ? `· ${staff.region}` : ''}
-                  </span>
-                  <span className={`text-[10px] font-semibold ${staff.experience === 'novice' ? 'text-emerald-600' : 'text-slate-500'}`}>
-                    {staff.experience === 'expert' ? '高手' : staff.experience === 'novice' ? '新手' : '一般人'}
-                  </span>
-                  {staff.entryDate && (
-                    <span className="text-[9px] text-slate-400 font-mono">
-                      {staff.entryDate}
-                    </span>
-                  )}
-                  {staff.isExited && (
-                    <span className="text-[9px] bg-rose-100 text-rose-700 font-bold px-1 rounded">
-                      已离职
-                    </span>
-                  )}
-                </div>
+          <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
+            {displayList.map((staff) => {
+              const isEditing = editingStaff?.id === staff.id;
 
-                <div className="flex items-center space-x-1">
-                  {onToggleExitStaff && (
+              if (isEditing && editingStaff) {
+                return (
+                  <div key={staff.id} className="p-2.5 bg-indigo-50/70 border border-indigo-300 rounded-xl space-y-2 animate-fade-in">
+                    <div className="text-xs font-bold text-indigo-900 flex items-center justify-between">
+                      <span>正在编辑成员: {staff.name}</span>
+                      <button onClick={() => setEditingStaff(null)} className="text-slate-400 hover:text-slate-600">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-xs">
+                      <div>
+                        <span className="text-[10px] text-slate-500 block mb-0.5">姓名</span>
+                        <input
+                          type="text"
+                          value={editingStaff.name}
+                          onChange={(e) => setEditingStaff({ ...editingStaff, name: e.target.value })}
+                          className="w-full p-1 bg-white border border-slate-300 rounded focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] text-slate-500 block mb-0.5">所属组别</span>
+                        <select
+                          value={editingStaff.groupId}
+                          onChange={(e) => setEditingStaff({ ...editingStaff, groupId: e.target.value })}
+                          className="w-full p-1 bg-white border border-slate-300 rounded font-semibold focus:outline-none"
+                        >
+                          {groups.map((g) => (
+                            <option key={g} value={g}>{formatGroupMinimal(g)}组</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] text-slate-500 block mb-0.5">归属区域</span>
+                        <select
+                          value={editingStaff.region}
+                          onChange={(e) => setEditingStaff({ ...editingStaff, region: e.target.value })}
+                          className="w-full p-1 bg-white border border-slate-300 rounded focus:outline-none"
+                        >
+                          {regions.map((r) => (
+                            <option key={r} value={r}>{r}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] text-slate-500 block mb-0.5">经验等级</span>
+                        <select
+                          value={editingStaff.experience}
+                          onChange={(e) => setEditingStaff({ ...editingStaff, experience: e.target.value as ExperienceLevel })}
+                          className="w-full p-1 bg-white border border-slate-300 rounded focus:outline-none"
+                        >
+                          <option value="regular">一般人</option>
+                          <option value="expert">高手</option>
+                          <option value="novice">新手</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end space-x-1.5 pt-1">
+                      <button
+                        onClick={() => setEditingStaff(null)}
+                        className="px-2.5 py-1 bg-white text-slate-600 border border-slate-300 text-xs font-semibold rounded hover:bg-slate-100"
+                      >
+                        取消
+                      </button>
+
+                      <button
+                        onClick={handleSaveEdit}
+                        className="px-3 py-1 bg-indigo-600 text-white text-xs font-bold rounded hover:bg-indigo-700 shadow-xs flex items-center space-x-1"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>保存修改</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div
+                  key={staff.id}
+                  className="p-2 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between text-xs hover:border-indigo-300 transition"
+                >
+                  <div className="flex items-center space-x-2">
+                    <span className="font-bold text-slate-800">{staff.name}</span>
+                    <span className="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.2 rounded">
+                      {formatGroupMinimal(staff.groupId)}组 {staff.region !== '待定' ? `· ${staff.region}` : ''}
+                    </span>
+                    <span className={`text-[10px] font-semibold ${staff.experience === 'novice' ? 'text-emerald-600' : 'text-slate-500'}`}>
+                      {staff.experience === 'expert' ? '高手' : staff.experience === 'novice' ? '新手' : '一般人'}
+                    </span>
+                    {staff.entryDate && (
+                      <span className="text-[9px] text-slate-400 font-mono">
+                        {staff.entryDate}
+                      </span>
+                    )}
+                    {staff.isExited && (
+                      <span className="text-[9px] bg-rose-100 text-rose-700 font-bold px-1 rounded">
+                        已离职
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center space-x-1">
+                    {/* 修改编辑按钮 */}
                     <button
-                      onClick={() => onToggleExitStaff(staff.id, !staff.isExited)}
-                      className={`p-1 rounded hover:bg-slate-200 text-[10px] font-bold flex items-center space-x-0.5 ${
-                        staff.isExited ? 'text-emerald-700' : 'text-rose-600'
-                      }`}
-                      title={staff.isExited ? '恢复为在职' : '标记离职'}
+                      onClick={() => handleStartEdit(staff)}
+                      className="p-1 text-slate-400 hover:text-indigo-600 rounded hover:bg-slate-200"
+                      title="编辑人员信息"
                     >
-                      {staff.isExited ? <UserCheck className="w-3.5 h-3.5" /> : <UserMinus className="w-3.5 h-3.5" />}
+                      <Edit2 className="w-3.5 h-3.5" />
                     </button>
-                  )}
 
-                  <button
-                    onClick={() => {
-                      if (confirm(`确定彻底删除人员 [${staff.name}] 吗？`)) {
-                        onDeleteStaff(staff.id);
-                      }
-                    }}
-                    className="p-1 text-slate-400 hover:text-rose-600 rounded"
-                    title="删除"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                    {onToggleExitStaff && (
+                      <button
+                        onClick={() => onToggleExitStaff(staff.id, !staff.isExited)}
+                        className={`p-1 rounded hover:bg-slate-200 text-[10px] font-bold flex items-center space-x-0.5 ${
+                          staff.isExited ? 'text-emerald-700' : 'text-rose-600'
+                        }`}
+                        title={staff.isExited ? '恢复为在职' : '标记离职'}
+                      >
+                        {staff.isExited ? <UserCheck className="w-3.5 h-3.5" /> : <UserMinus className="w-3.5 h-3.5" />}
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => {
+                        if (confirm(`确定彻底删除人员 [${staff.name}] 吗？`)) {
+                          onDeleteStaff(staff.id);
+                        }
+                      }}
+                      className="p-1 text-slate-400 hover:text-rose-600 rounded"
+                      title="删除"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             {displayList.length === 0 && (
               <div className="py-6 text-center text-slate-400 text-xs border border-dashed border-slate-200 rounded-lg">

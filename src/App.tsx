@@ -107,6 +107,23 @@ export const App: React.FC = () => {
     }
   };
 
+  // 修改在职/离职人员信息
+  const handleUpdateStaff = (updatedStaffObj: Staff) => {
+    const updated = staffList.map(s => {
+      if (s.id === updatedStaffObj.id) {
+        return updatedStaffObj;
+      }
+      return s;
+    });
+
+    setStaffList(updated);
+    saveStaff(updated);
+
+    if (selectedStaff && selectedStaff.id === updatedStaffObj.id) {
+      setSelectedStaff(updatedStaffObj);
+    }
+  };
+
   const handleReorderDirections = (newOrderedDirections: Direction[]) => {
     setDirections(newOrderedDirections);
     saveDirections(newOrderedDirections);
@@ -333,6 +350,7 @@ export const App: React.FC = () => {
           onClose={() => setIsStaffModalOpen(false)}
           onAddStaff={handleAddStaff}
           onDeleteStaff={handleDeleteStaff}
+          onUpdateStaff={handleUpdateStaff}
           onToggleExitStaff={handleToggleExitStaff}
         />
       )}
