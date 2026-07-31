@@ -64,19 +64,20 @@ export const BoardView: React.FC<BoardViewProps> = ({
     personContainers.forEach((container) => {
       const s = new Sortable(container as HTMLElement, {
         group: 'roster-board',
-        animation: 180,
+        animation: 150,
         touchStartThreshold: 4,
         delay: 80,
         delayOnTouchOnly: true,
         fallbackOnBody: true,
-        ghostClass: 'opacity-40',
+        ghostClass: 'opacity-30',
         onEnd: (evt) => {
           const { item, from, to, oldIndex } = evt;
           const staffId = item.getAttribute('data-id');
           const targetDirId = to.getAttribute('data-direction-id');
 
-          if (from !== to && from && item) {
-            if (oldIndex !== undefined && from.children[oldIndex]) {
+          // 还原原生 DOM 节点，完全由 React 虚拟 DOM 驱动渲染，避免 DOM 混乱与二次影子
+          if (from && item && oldIndex !== undefined) {
+            if (from.children[oldIndex]) {
               from.insertBefore(item, from.children[oldIndex]);
             } else {
               from.appendChild(item);
@@ -340,11 +341,15 @@ export const BoardView: React.FC<BoardViewProps> = ({
           </div>
         </div>
 
-        {/* 人员拖拽容器 */}
+        {/* 极简流线型人员拖拽容器：不再使用大块虚线框，有人时直展人员，无人时展现轻盈微弧线落脚点 */}
         {!isCardFolded && (
           <div
             data-direction-id={dir.id}
-            className="drag-container p-1.5 flex-1 min-h-[55px] flex flex-wrap content-start gap-1 bg-slate-50/50"
+            className={`drag-container p-1.5 flex-1 min-h-[42px] flex flex-wrap content-start gap-1 transition-colors ${
+              assignedStaff.length === 0 
+                ? 'bg-slate-50/70 border-1 border-dashed border-slate-200/80 rounded-b-xl' 
+                : 'bg-slate-50/40'
+            }`}
           >
             {assignedStaff.map((staff) => {
               const canEdit = canEditStaff(authUser, staff);
@@ -360,12 +365,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
                 />
               );
             })}
-
-            {assignedStaff.length === 0 && (
-              <div className="w-full h-9 flex items-center justify-center border border-dashed border-slate-200 rounded text-slate-400 text-[10px]">
-                {isEditMode ? '拖拽人员指派' : '无人排班'}
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -428,7 +427,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
           ) : (
             <div
               data-direction-id=""
-              className="drag-container p-1.5 min-h-[60px] max-h-44 lg:max-h-[60vh] overflow-y-auto flex flex-wrap content-start gap-1 bg-slate-50/50"
+              className="drag-container p-1.5 min-h-[50px] max-h-44 lg:max-h-[60vh] overflow-y-auto flex flex-wrap content-start gap-1 bg-slate-50/50"
             >
               {unassignedList.map((staff) => {
                 const canEdit = canEditStaff(authUser, staff);
@@ -481,7 +480,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
               </button>
             </div>
 
-            {/* 极简彻底干净：当整体折叠时直接隐藏下方内容，没有任何多余提示行 */}
             {sceneFoldMode !== 'section_folded' && (
               <div className="scene-grid-container grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 w-full">
                 {populatedScenes.map(dir => renderDirectionCard(dir, sceneFoldMode))}
@@ -542,7 +540,6 @@ export const BoardView: React.FC<BoardViewProps> = ({
               </button>
             </div>
 
-            {/* 极简彻底干净：当整体折叠时直接隐藏下方内容，没有任何多余提示行 */}
             {publicFoldMode !== 'section_folded' && (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 w-full">
                 {specialCategories.map(dir => renderDirectionCard(dir, publicFoldMode))}
