@@ -26,7 +26,9 @@ export const App: React.FC = () => {
 
   const [colorMode, setColorMode] = useState<ColorHighlightMode>('none');
   const [activeView, setActiveView] = useState<ViewType>('board');
-  const [isEditMode, setIsEditMode] = useState<boolean>(false);
+  
+  // 修改：默认 isEditMode = true (默认即为编辑模式，可以直接拖拽排班)
+  const [isEditMode, setIsEditMode] = useState<boolean>(true);
 
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [directions, setDirections] = useState<Direction[]>([]);
@@ -199,7 +201,6 @@ export const App: React.FC = () => {
     saveDirections(updated);
   };
 
-  // 场景软删除 (Soft Delete)
   const handleDeleteDirection = (dirId: string) => {
     const updated = directions.map(d => {
       if (d.id === dirId) {
@@ -211,7 +212,6 @@ export const App: React.FC = () => {
     saveDirections(updated);
   };
 
-  // 场景从软删除中恢复 (Restore)
   const handleRestoreDirection = (dirId: string) => {
     const updated = directions.map(d => {
       if (d.id === dirId) {
@@ -240,7 +240,6 @@ export const App: React.FC = () => {
     saveStaff(updated);
   };
 
-  // 获取可见方向（自动排除已被软删除 isDeleted 的方向）
   const getFilteredDirections = (): Direction[] => {
     const available = directions.filter(d => !d.isDeleted);
     switch (activeView) {
