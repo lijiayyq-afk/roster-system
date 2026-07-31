@@ -3,7 +3,7 @@ import { AuthUser, ColorHighlightMode, DailySchedule, Direction, Staff } from '.
 import { PersonCard } from './PersonCard';
 import { canEditStaff } from '../models/PermissionModel';
 import { sortStaffWithCaptain } from '../models/StaffModel';
-import { Building, Award, Users, ChevronDown } from 'lucide-react';
+import { Building, Award, Users, Filter } from 'lucide-react';
 
 interface SceneViewProps {
   schedule: DailySchedule;
@@ -46,60 +46,41 @@ export const SceneView: React.FC<SceneViewProps> = ({
 
   return (
     <div id="scene-view-export" className="space-y-3">
-      {/* 场景视角顶部控制栏：默认全场景，避免场景平铺过长 */}
+      {/* 场景视角顶部控制栏：全场景总视图与场景切换合并为单一下拉框 */}
       <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
         <div className="flex items-center space-x-2">
           <div className="p-1.5 bg-blue-100 rounded-lg text-blue-700">
             <Building className="w-4 h-4" />
           </div>
           <div>
-            <h4 className="text-xs font-bold text-slate-800">场景视角查看</h4>
-            <p className="text-[10px] text-slate-400">默认展示全场景，可下拉选择特定单场景</p>
+            <h4 className="text-xs font-bold text-slate-800">场景视角看板</h4>
+            <p className="text-[10px] text-slate-400">选择查阅总视图或调阅单一场景</p>
           </div>
         </div>
 
-        {/* 简洁维度选择 */}
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setSelectedSceneId('all')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-              selectedSceneId === 'all'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
+        {/* 合并为单一下拉选择框 (全场景总视图与个别场景切换融为一体) */}
+        <div className="flex items-center space-x-1.5">
+          <Filter className="w-3.5 h-3.5 text-blue-600 hidden sm:block" />
+          <select
+            value={selectedSceneId}
+            onChange={(e) => setSelectedSceneId(e.target.value)}
+            className="text-xs font-bold px-3 py-1.5 rounded-lg border border-blue-300 bg-blue-50/80 text-blue-900 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-xs"
           >
-            🌐 全场景 (总视图)
-          </button>
-
-          {/* 特定场景选择下拉框 (下拉查看个别场景) */}
-          <div className="relative">
-            <select
-              value={selectedSceneId === 'all' ? '' : selectedSceneId}
-              onChange={(e) => {
-                const val = e.target.value;
-                setSelectedSceneId(val || 'all');
-              }}
-              className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg border focus:outline-none cursor-pointer ${
-                selectedSceneId !== 'all'
-                  ? 'bg-blue-50 border-blue-400 text-blue-800 font-bold'
-                  : 'bg-slate-100 border-slate-300 text-slate-700'
-              }`}
-            >
-              <option value="">切换个别场景 ▾</option>
-              {sceneDirections.map((scene) => {
-                const count = getStaffForScene(scene.id).length;
-                return (
-                  <option key={scene.id} value={scene.id}>
-                    {scene.name} ({count}人)
-                  </option>
-                );
-              })}
-            </select>
-          </div>
+            <option value="all">🌐 所有场景 (总视图)</option>
+            <option disabled className="bg-slate-100 text-slate-400">──────────</option>
+            {sceneDirections.map((scene) => {
+              const count = getStaffForScene(scene.id).length;
+              return (
+                <option key={scene.id} value={scene.id} className="bg-white text-slate-800 font-normal">
+                  📍 {scene.name} ({count}人)
+                </option>
+              );
+            })}
+          </select>
         </div>
       </div>
 
-      {/* 场景内容区 */}
+      {/* 场景内容展示区 */}
       <div className={`grid gap-3 ${selectedSceneId === 'all' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
         {displayScenes.map((scene) => {
           const assignedStaff = getStaffForScene(scene.id);
