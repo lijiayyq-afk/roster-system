@@ -38,12 +38,27 @@ export const BoardView: React.FC<BoardViewProps> = ({
         touchStartThreshold: 5,
         ghostClass: 'opacity-40',
         onEnd: (evt) => {
-          const { item, to } = evt;
+          const { item, from, to, oldIndex } = evt;
           const staffId = item.getAttribute('data-id');
           const targetDirId = to.getAttribute('data-direction-id');
 
+          // 关键修复：还原 SortableJS 改变的真实 DOM，交由 React 数据状态接管重绘，防止 React 虚拟 DOM removeChild/insertBefore 冲突引发白屏崩溃
+          if (from !== to && from && item) {
+            if (oldIndex !== undefined && from.children[oldIndex]) {
+              from.insertBefore(item, from.children[oldIndex]);
+            } else {
+              from.appendChild(item);
+            }
+          }
+
           if (staffId && targetDirId) {
-            onMoveStaff(staffId, targetDirId);
+            // 权限检查
+            const staff = staffList.find(s => s.id === staffId);
+            if (staff && canEditStaff(authUser, staff)) {
+              onMoveStaff(staffId, targetDirId);
+            } else if (staff && !canEditStaff(authUser, staff)) {
+              alert(`您作为 [${authUser.groupId}组长]，无权修改 [${staff.groupId}] 成员 [${staff.name}] 的排班安排`);
+            }
           }
         },
       });
@@ -53,7 +68,7 @@ export const BoardView: React.FC<BoardViewProps> = ({
     return () => {
       sortables.forEach((s) => s.destroy());
     };
-  }, [directions, schedule, authUser]);
+  }, [directions, schedule, authUser, staffList]);
 
   const getStaffForDirection = (dirId: string): Staff[] => {
     const assignedIds = Object.entries(schedule.assignments)
