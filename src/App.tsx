@@ -7,6 +7,7 @@ import { ViewTabs, ViewType } from './components/ViewTabs';
 import { BoardView } from './components/BoardView';
 import { SceneView } from './components/SceneView';
 import { GroupView } from './components/GroupView';
+import { ListView } from './components/ListView';
 import { VacationView } from './components/VacationView';
 import { BottomSheet } from './components/BottomSheet';
 import { DirectionModal } from './components/DirectionModal';
@@ -88,7 +89,6 @@ export const App: React.FC = () => {
     });
   };
 
-  // 修改人员在某时段的履约执行状态 (on_track / off_track / pending)
   const handleToggleExecutionStatus = (staffId: string, slot: TimeSlot, status: ExecutionStatus) => {
     const key = `${staffId}_${slot}`;
     const updatedRecords = {
@@ -197,10 +197,11 @@ export const App: React.FC = () => {
       } else if (activeView === 'scene') {
         elementId = 'scene-view-export';
         viewName = '合作方场景视图';
+      } else if (activeView === 'list') {
+        elementId = 'list-view-export';
+        viewName = '线上名单收件视图';
       } else if (activeView === 'branch') {
         viewName = '厅堂支行视图';
-      } else if (activeView === 'list') {
-        viewName = '线上名单收件视图';
       } else if (activeView === 'self_explore') {
         viewName = '自拓获客视图';
       }
@@ -249,6 +250,15 @@ export const App: React.FC = () => {
             authUser={authUser}
             colorMode={colorMode}
             onMoveStaff={handleMoveStaff}
+            onClickStaffCard={setSelectedStaff}
+          />
+        ) : activeView === 'list' ? (
+          <ListView
+            schedule={currentSchedule}
+            staffList={staffList}
+            directions={directions}
+            authUser={authUser}
+            colorMode={colorMode}
             onClickStaffCard={setSelectedStaff}
           />
         ) : activeView === 'vacation' ? (
