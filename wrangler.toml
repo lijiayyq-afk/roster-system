@@ -1,8 +1,6 @@
 name = "roster-system"
 compatibility_date = "2026-07-31"
-
-[site]
-bucket = "./dist"
+pages_build_output_dir = "./dist"
 
 [[d1_databases]]
 binding = "DB"
