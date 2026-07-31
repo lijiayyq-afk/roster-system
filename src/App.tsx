@@ -37,12 +37,10 @@ export const App: React.FC = () => {
   const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
 
   useEffect(() => {
-    // 优先加载本地快照
     setStaffList(loadStaff());
     setDirections(loadDirections());
     setSchedules(loadSchedules());
 
-    // 尝试拉取全网云端同步数据
     fetchCloudLatestData().then(cloudData => {
       if (cloudData) {
         if (cloudData.staffList && cloudData.staffList.length > 0) {
@@ -192,7 +190,8 @@ export const App: React.FC = () => {
       id: `dir-${Date.now()}`,
       name,
       category,
-      captainId: null
+      captainId: null,
+      isDeleted: false
     };
 
     const updated = [...directions, newDir];
@@ -200,8 +199,26 @@ export const App: React.FC = () => {
     saveDirections(updated);
   };
 
+  // 场景软删除 (Soft Delete)
   const handleDeleteDirection = (dirId: string) => {
-    const updated = directions.filter(d => d.id !== dirId);
+    const updated = directions.map(d => {
+      if (d.id === dirId) {
+        return { ...d, isDeleted: true };
+      }
+      return d;
+    });
+    setDirections(updated);
+    saveDirections(updated);
+  };
+
+  // 场景从软删除中恢复 (Restore)
+  const handleRestoreDirection = (dirId: string) => {
+    const updated = directions.map(d => {
+      if (d.id === dirId) {
+        return { ...d, isDeleted: false };
+      }
+      return d;
+    });
     setDirections(updated);
     saveDirections(updated);
   };
@@ -223,18 +240,20 @@ export const App: React.FC = () => {
     saveStaff(updated);
   };
 
+  // 获取可见方向（自动排除已被软删除 isDeleted 的方向）
   const getFilteredDirections = (): Direction[] => {
+    const available = directions.filter(d => !d.isDeleted);
     switch (activeView) {
       case 'scene':
-        return directions.filter(d => d.category === 'scene');
+        return available.filter(d => d.category === 'scene');
       case 'branch':
-        return directions.filter(d => d.category === 'branch');
+        return available.filter(d => d.category === 'branch');
       case 'list':
-        return directions.filter(d => d.category === 'list');
+        return available.filter(d => d.category === 'list');
       case 'self_explore':
-        return directions.filter(d => d.category === 'self_explore');
+        return available.filter(d => d.category === 'self_explore');
       default:
-        return directions;
+        return available;
     }
   };
 
@@ -276,7 +295,7 @@ export const App: React.FC = () => {
         groups={GROUPS}
         isEditMode={isEditMode}
         onToggleEditMode={() => setIsEditMode(!isEditMode)}
-        onExportExcel={() => exportScheduleToExcel(currentSchedule, staffList, directions)}
+        onExportExcel={() => exportScheduleToExcel(currentSchedule, staffList, directions.filter(d => !d.isDeleted))}
         onExportImage={handleExportImage}
         onOpenStaffModal={() => setIsStaffModalOpen(true)}
         onOpenDirectionModal={() => setIsDirectionModalOpen(true)}
@@ -289,7 +308,7 @@ export const App: React.FC = () => {
           <SceneView
             schedule={currentSchedule}
             staffList={staffList}
-            directions={directions}
+            directions={directions.filter(d => !d.isDeleted)}
             authUser={authUser}
             colorMode={colorMode}
             onMoveStaff={handleMoveStaff}
@@ -299,7 +318,7 @@ export const App: React.FC = () => {
           <ListView
             schedule={currentSchedule}
             staffList={staffList}
-            directions={directions}
+            directions={directions.filter(d => !d.isDeleted)}
             authUser={authUser}
             colorMode={colorMode}
             onClickStaffCard={setSelectedStaff}
@@ -308,7 +327,7 @@ export const App: React.FC = () => {
           <VacationView
             currentDate={currentDate}
             staffList={staffList}
-            directions={directions}
+            directions={directions.filter(d => !d.isDeleted)}
             allSchedules={schedules}
           />
         ) : (
@@ -334,7 +353,7 @@ export const App: React.FC = () => {
       {selectedStaff && (
         <BottomSheet
           staff={selectedStaff}
-          directions={directions}
+          directions={directions.filter(d => !d.isDeleted)}
           currentDirectionId={currentSchedule.assignments[selectedStaff.id]}
           slotSchedule={currentSchedule.slotAssignments[selectedStaff.id]}
           onClose={() => setSelectedStaff(null)}
@@ -355,6 +374,7 @@ export const App: React.FC = () => {
           onClose={() => setIsDirectionModalOpen(false)}
           onAddDirection={handleAddDirection}
           onDeleteDirection={handleDeleteDirection}
+          onRestoreDirection={handleRestoreDirection}
         />
       )}
 

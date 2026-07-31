@@ -22,7 +22,8 @@ export interface Direction {
   category: DirectionCategory;
   captainId: string | null;
   order?: number;
-  isPinned?: boolean; // 新增：是否置顶
+  isPinned?: boolean;
+  isDeleted?: boolean; // 新增：软删除标记
 }
 
 export interface PersonSlotSchedule {
